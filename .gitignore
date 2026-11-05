@@ -1,0 +1,13 @@
+# Local datasets, downloaded models and generated experiment outputs
+/data/
+/models/
+/artifacts/
+/Qwen3-VL-Embedding/
+*.tar.gz
+*.zip
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+.DS_Store
