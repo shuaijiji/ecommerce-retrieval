@@ -45,3 +45,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 商品索引默认写入 `artifacts/zero_shot_v0/items/`，试运行结果默认写入 `artifacts/zero_shot_v0/eval100/`。最终汇总位于 `eval100/summary.json`，逐视频 Top-100 和精确排名位于 `eval100/results/`。
 
 文本输入按字段独立限额，避免长 OCR 把 ASR 完全截掉。奇数帧视频会复制最后一帧作为时间维填充；所有帧保持宽高比并填充为 `512×512`。任何视觉预处理异常都会中止，不会接受官方实现的静默 `NULL` embedding。
+
+## 训练前诊断
+
+`analyze_rerank_errors.py` 对已经完成的精排结果做标签侧错误分解，并可成对比较两个嵌套候选实验。`run_error_analysis_top25.sh` 按“Top-10 错误分解 → Top-25 全新零训练精排 → 成对对照”的固定顺序运行。详情见 [RERANK.md](RERANK.md)。

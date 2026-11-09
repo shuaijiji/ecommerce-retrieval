@@ -1,6 +1,6 @@
 # 零训练精排流水线
 
-2026-11-05：本地实现完成，标准库合成回归测试及语法检查通过。真实候选生成、RRF 指标、GPU 预跑和全量运行尚未执行；本地没有数据、召回产物和模型。不要把合成测试输出当真实指标。
+2026-11-05 完成本地实现与合成回归测试；2026-11-06 完成远端 GPU 预跑和 10,000 条全量运行。本地仍没有数据、召回产物和模型，真实指标以 `进展更新-2026-11-06.md` 记录的远端输出为准。
 
 ## 输入与输出
 
@@ -46,3 +46,26 @@ bash scripts/run_rerank.sh /实际完整召回结果目录
 完整集应满足 system_top1 = candidate_recall × candidate_rerank_accuracy。历史纯视觉 Top-1 为 64.09%，应在新报告中回读核对。只有拿到真实运行输出才能报告新准确率或实际速度。
 
 官方实现参考：https://github.com/QwenLM/Qwen3-VL-Embedding/blob/main/src/models/qwen3_vl_reranker.py
+
+## 错误分解与 Top-25 对照
+
+训练前固定先运行以下对照；它不会改动 Top-10 结果，也不会用标签生成候选：
+
+```bash
+bash scripts/run_error_analysis_top25.sh \
+  /实际完整召回结果目录 \
+  artifacts/rerank_v0 \
+  artifacts/rerank_top25_v0
+```
+
+脚本首先对已完成的 Top-10 全量结果做逐例错误分解，再在全新目录中生成“纯视觉 Top-25 ∪ 多模态 Top-25”候选，以同一个冻结的零训练 Reranker 完成功能预跑和 10,000 条评估。默认 batch size 为 4，可用 `ECOM_RERANK_BATCH_SIZE` 覆盖；改变 batch size 必须使用新的输出目录。
+
+主要产物：
+
+- `rerank_v0/analysis/error_summary.json`：Top-10 的候选未命中、候选内选错、正确三分法，以及视觉首名到精排结果的转移。
+- `rerank_v0/analysis/error_cases.jsonl`：逐视频真值/预测、两路真值排名、分数间隔、候选数、帧数和文本字段是否存在。
+- `rerank_top25_v0/analysis/error_summary.json`：同口径 Top-25 错误分解。
+- `rerank_top25_v0/analysis/top10_vs_top25_summary.json`：成对候选召回与 Top-1 净变化、新增正确、退化错误及每个新增候选命中的净转化。
+- `rerank_top25_v0/analysis/top10_vs_top25_cases.jsonl`：每条视频的成对状态，便于抽样复核。
+
+Top-25 候选 Recall 必须回读为 93.62%，否则流程停止。Top-25 采用全新推理，不复用 Top-10 分数，从而保留完整、可比的端到端延迟口径。只有全量成对结果证明新增正确明显超过退化错误，才据此判断扩容价值；否则优先分析候选内 1,103 条错误，而不是直接训练。
