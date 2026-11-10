@@ -29,7 +29,7 @@ class TrainingDataTest(unittest.TestCase):
         (self.root / 'item_info.jsonl').write_text('\n'.join(map(json.dumps, items)) + '\n')
         (self.root / 'photo_info.jsonl').write_text('\n'.join(map(json.dumps, photos)) + '\n')
         self.labels = self.root / 'label.jsonl'
-        self.labels.write_text('\n'.join(map(json.dumps, labels)) + '\n')
+        self.labels.write_text('\n'.join(map(json.dumps, labels + [labels[0]])) + '\n')
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -40,8 +40,9 @@ class TrainingDataTest(unittest.TestCase):
                                        '--output', str(report), '--full-path-check']):
             audit_training_data.main()
         result = json.loads(report.read_text())
-        self.assertEqual(result['counts'], {'items': 20, 'photos': 20, 'labels': 20, 'valid_label_pairs': 20})
+        self.assertEqual(result['counts'], {'items': 20, 'photos': 20, 'labels': 21, 'valid_label_pairs': 21})
         self.assertFalse(any(result['critical_checks'].values()))
+        self.assertEqual(result['known_or_allowed_issues']['duplicate_label_rows'], 1)
         out = self.root / 'split'
         with patch.object(sys, 'argv', ['split', '--labels', str(self.labels), '--output-dir', str(out),
                                        '--dev-item-ratio', '.25', '--seed', '1']):
@@ -50,6 +51,7 @@ class TrainingDataTest(unittest.TestCase):
         dev_items = set((out / 'dev_item_ids.txt').read_text().splitlines())
         self.assertFalse(train_items & dev_items)
         self.assertEqual(len(train_items | dev_items), 20)
+        self.assertEqual(json.loads((out / 'manifest.json').read_text())['counts']['removed_exact_duplicate_rows'], 1)
 
 
 if __name__ == '__main__':

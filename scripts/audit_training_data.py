@@ -149,6 +149,11 @@ def main():
     label_source_count, label_pairs, label_error_count, label_errors = read_labels(labels_path)
     photo_label_counts = Counter(photo for photo, _ in label_pairs)
     pair_counts = Counter(label_pairs)
+    first_item_by_photo, conflicting_photos = {}, set()
+    for photo, item in label_pairs:
+        previous = first_item_by_photo.setdefault(photo, item)
+        if previous != item:
+            conflicting_photos.add(photo)
     missing_item_paths = items['missing_path_examples'] if args.full_path_check else [
         (identity, relative) for identity, relative in items['path_sample']
         if not relative or not (root / relative).is_file()]
@@ -161,8 +166,7 @@ def main():
         'item_json_errors': items['error_count'], 'photo_json_errors': photos['error_count'],
         'label_errors': label_error_count, 'duplicate_item_ids': items['duplicates'],
         'duplicate_photo_ids': photos['duplicates'],
-        'duplicate_label_pairs': sum(value - 1 for value in pair_counts.values()),
-        'photos_with_multiple_labels': sum(value > 1 for value in photo_label_counts.values()),
+        'photos_with_conflicting_items': len(conflicting_photos),
         'missing_photo_references': sum(photo not in photos['ids'] for photo, _ in label_pairs),
         'missing_item_references': sum(item not in items['ids'] for _, item in label_pairs),
         'photos_without_labels': len(photos['ids'] - set(photo_label_counts)),
@@ -176,14 +180,18 @@ def main():
                    'valid_label_pairs': len(label_pairs)},
         'critical_checks': critical,
         'known_or_allowed_issues': {'actual_missing_item_images': actual_missing_items,
-                                    'allowed_missing_item_images': args.allow_missing_item_images},
+                                    'allowed_missing_item_images': args.allow_missing_item_images,
+                                    'duplicate_label_rows': sum(value - 1 for value in pair_counts.values()),
+                                    'photos_with_repeated_label_rows': sum(value > 1 for value in photo_label_counts.values()),
+                                    'unique_label_pairs': len(pair_counts)},
         'frame_count_distribution': dict(sorted(photos['frame_counts'].items())),
         'nonempty_video_text': {field: {'count': photos['text_counts'][field],
                                         'rate': photos['text_counts'][field] / photos['count'] if photos['count'] else 0}
                                 for field in TEXT_FIELDS},
         'examples': {'item_json_errors': items['errors'], 'photo_json_errors': photos['errors'],
                      'label_errors': label_errors, 'missing_item_images': missing_item_paths[:20],
-                     'missing_frames': missing_frame_paths[:20]},
+                     'missing_frames': missing_frame_paths[:20],
+                     'conflicting_photo_ids': sorted(conflicting_photos)[:20]},
         'metadata_sha256': {path.name: sha256(path) for path in required},
     }
     atomic_save(result, args.output)

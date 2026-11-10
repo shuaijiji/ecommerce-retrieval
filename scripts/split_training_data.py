@@ -3,7 +3,6 @@
 import argparse
 import hashlib
 import json
-from collections import Counter
 from pathlib import Path
 
 
@@ -46,10 +45,16 @@ def main():
     args = parser.parse_args()
     if not 0 < args.dev_item_ratio < .5:
         raise ValueError('dev-item-ratio must be between 0 and 0.5')
-    pairs = read_pairs(args.labels)
-    photo_counts = Counter(photo for photo, _ in pairs)
-    if any(value != 1 for value in photo_counts.values()):
-        raise ValueError('each photo must have exactly one label before splitting')
+    raw_pairs = read_pairs(args.labels)
+    photo_to_item, duplicate_rows = {}, 0
+    for photo, item in raw_pairs:
+        if photo in photo_to_item:
+            if photo_to_item[photo] != item:
+                raise ValueError(f'photo has conflicting item labels: {photo}')
+            duplicate_rows += 1
+        else:
+            photo_to_item[photo] = item
+    pairs = sorted(photo_to_item.items())
     dev_items = {item for _, item in pairs if bucket(args.seed, item) < args.dev_item_ratio}
     train_photos = sorted(photo for photo, item in pairs if item not in dev_items)
     dev_photos = sorted(photo for photo, item in pairs if item in dev_items)
@@ -65,7 +70,9 @@ def main():
     manifest = {'method': 'deterministic SHA-256 item-disjoint split', 'seed': args.seed,
                 'requested_dev_item_ratio': args.dev_item_ratio,
                 'counts': {'train_photos': len(train_photos), 'dev_photos': len(dev_photos),
-                           'train_items': len(train_items), 'dev_items': len(dev_items)},
+                           'train_items': len(train_items), 'dev_items': len(dev_items),
+                           'source_label_rows': len(raw_pairs), 'deduplicated_label_rows': len(pairs),
+                           'removed_exact_duplicate_rows': duplicate_rows},
                 'item_overlap': 0, 'labels_sha256': hashlib.sha256(args.labels.read_bytes()).hexdigest(),
                 'near_duplicate_grouping_done': False,
                 'warning': 'Run near-duplicate image grouping before treating this split as final.'}
