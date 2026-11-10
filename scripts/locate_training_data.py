@@ -34,15 +34,17 @@ def main():
         depth = len(current_path.relative_to(root).parts)
         dirs[:] = [] if depth >= args.max_depth else [d for d in dirs if d not in PRUNE]
         if {'item_info.jsonl', 'photo_info.jsonl'} <= set(files):
-            labels = current_path / 'label.json'
+            label_candidates = [current_path / name for name in ('label.jsonl', 'label.json')]
+            labels = next((path for path in label_candidates if path.is_file()), None)
             item = current_path / 'item_info.jsonl'
             photo = current_path / 'photo_info.jsonl'
             found.append({
                 'data_root': str(current_path),
-                'label_exists': labels.is_file(),
+                'label_path': str(labels) if labels else None,
+                'label_format': 'jsonl' if labels and labels.suffix == '.jsonl' else 'json_array' if labels else None,
                 'metadata_bytes': {'item_info.jsonl': item.stat().st_size,
                                    'photo_info.jsonl': photo.stat().st_size,
-                                   'label.json': labels.stat().st_size if labels.is_file() else None},
+                                   'labels': labels.stat().st_size if labels else None},
                 'item_keys': sorted(first_object(item)),
                 'photo_keys': sorted(first_object(photo)),
             })

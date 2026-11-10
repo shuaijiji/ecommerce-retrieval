@@ -12,12 +12,13 @@ python scripts/locate_training_data.py \
   | tee artifacts/train_data_locations.json
 ```
 
-从输出中选择训练集根目录。它必须同时包含 `item_info.jsonl`、`photo_info.jsonl` 和 `label.json`，且不能误选验证集的 `test_small_package`。先运行随机路径审计：
+从输出中选择训练集根目录。它必须同时包含 `item_info.jsonl`、`photo_info.jsonl` 和 `label.jsonl`（训练集）或 `label.json`（验证集），且不能误选验证集的 `test_small_package`。先运行随机路径审计：
 
 ```bash
 TRAIN_ROOT=/替换为实际训练集根目录
 python scripts/audit_training_data.py \
   --data-root "$TRAIN_ROOT" \
+  --allow-missing-item-images 1 \
   --output artifacts/train_v0/audit_sample.json
 ```
 
@@ -27,6 +28,7 @@ python scripts/audit_training_data.py \
 python scripts/audit_training_data.py \
   --data-root "$TRAIN_ROOT" \
   --full-path-check \
+  --allow-missing-item-images 1 \
   --output artifacts/train_v0/audit_full.json
 ```
 
@@ -36,7 +38,7 @@ python scripts/audit_training_data.py \
 
 ```bash
 python scripts/split_training_data.py \
-  --labels "$TRAIN_ROOT/label.json" \
+  --labels "$TRAIN_ROOT/label.jsonl" \
   --dev-item-ratio 0.02 \
   --seed 20261110 \
   --output-dir artifacts/train_v0/split_item_disjoint

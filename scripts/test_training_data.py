@@ -28,8 +28,8 @@ class TrainingDataTest(unittest.TestCase):
             labels.append({'photo_id': photo_id, 'item_id': item_id})
         (self.root / 'item_info.jsonl').write_text('\n'.join(map(json.dumps, items)) + '\n')
         (self.root / 'photo_info.jsonl').write_text('\n'.join(map(json.dumps, photos)) + '\n')
-        self.labels = self.root / 'label.json'
-        self.labels.write_text(json.dumps(labels))
+        self.labels = self.root / 'label.jsonl'
+        self.labels.write_text('\n'.join(map(json.dumps, labels)) + '\n')
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -40,7 +40,7 @@ class TrainingDataTest(unittest.TestCase):
                                        '--output', str(report), '--full-path-check']):
             audit_training_data.main()
         result = json.loads(report.read_text())
-        self.assertEqual(result['counts'], {'items': 20, 'photos': 20, 'labels': 20})
+        self.assertEqual(result['counts'], {'items': 20, 'photos': 20, 'labels': 20, 'valid_label_pairs': 20})
         self.assertFalse(any(result['critical_checks'].values()))
         out = self.root / 'split'
         with patch.object(sys, 'argv', ['split', '--labels', str(self.labels), '--output-dir', str(out),

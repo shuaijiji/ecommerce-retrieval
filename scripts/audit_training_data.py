@@ -36,9 +36,42 @@ def reservoir_add(sample, value, seen, limit, rng):
             sample[position] = value
 
 
+def read_labels(path):
+    errors, pairs, source_count, error_count = [], [], 0, 0
+    if path.suffix == '.jsonl':
+        with path.open(encoding='utf-8') as handle:
+            source = ((line_number, line) for line_number, line in enumerate(handle, 1) if line.strip())
+            for line_number, line in source:
+                source_count += 1
+                try:
+                    row = json.loads(line)
+                    if not isinstance(row, dict):
+                        raise TypeError('not an object')
+                    pairs.append((str(row['photo_id']), str(row['item_id'])))
+                except Exception as exc:
+                    error_count += 1
+                    if len(errors) < 20:
+                        errors.append({'line': line_number, 'error': str(exc)})
+    else:
+        raw = json.loads(path.read_text())
+        if not isinstance(raw, list):
+            raise TypeError('label JSON must contain an array')
+        source_count = len(raw)
+        for index, row in enumerate(raw):
+            try:
+                if not isinstance(row, dict):
+                    raise TypeError('not an object')
+                pairs.append((str(row['photo_id']), str(row['item_id'])))
+            except Exception as exc:
+                error_count += 1
+                if len(errors) < 20:
+                    errors.append({'index': index, 'error': str(exc)})
+    return source_count, pairs, error_count, errors
+
+
 def read_jsonl(path, id_field, image_fields, sample_size, rng, data_root, full_path_check):
     ids, duplicates, errors, paths = set(), 0, [], []
-    count, path_seen, missing_path_count = 0, 0, 0
+    count, error_count, path_seen, missing_path_count = 0, 0, 0, 0
     missing_path_examples, text_counts, frame_counts = [], Counter(), Counter()
     with path.open(encoding='utf-8') as handle:
         for line_number, line in enumerate(handle, 1):
@@ -82,9 +115,10 @@ def read_jsonl(path, id_field, image_fields, sample_size, rng, data_root, full_p
                     else:
                         reservoir_add(paths, (identity, relative), path_seen, sample_size, rng)
             except Exception as exc:
+                error_count += 1
                 if len(errors) < 20:
                     errors.append({'line': line_number, 'error': str(exc)})
-    return {'count': count, 'ids': ids, 'duplicates': duplicates, 'errors': errors,
+    return {'count': count, 'ids': ids, 'duplicates': duplicates, 'error_count': error_count, 'errors': errors,
             'text_counts': text_counts, 'frame_counts': frame_counts, 'path_sample': paths,
             'missing_path_count': missing_path_count, 'missing_path_examples': missing_path_examples}
 
@@ -96,28 +130,23 @@ def main():
     parser.add_argument('--path-sample-size', type=int, default=10000)
     parser.add_argument('--seed', type=int, default=20261110)
     parser.add_argument('--full-path-check', action='store_true')
+    parser.add_argument('--allow-missing-item-images', type=int, default=0)
     args = parser.parse_args()
     root = args.data_root.resolve()
-    required = [root / name for name in ('item_info.jsonl', 'photo_info.jsonl', 'label.json')]
+    labels_path = next((root / name for name in ('label.jsonl', 'label.json') if (root / name).is_file()), None)
+    required = [root / 'item_info.jsonl', root / 'photo_info.jsonl']
+    if labels_path is not None:
+        required.append(labels_path)
     missing = [str(path) for path in required if not path.is_file()]
+    if labels_path is None:
+        missing.append(str(root / 'label.jsonl or label.json'))
     if missing:
         raise FileNotFoundError('missing required metadata: ' + ', '.join(missing))
     rng = random.Random(args.seed)
     sample_size = args.path_sample_size
     items = read_jsonl(required[0], 'item_id', {'item_image'}, sample_size, rng, root, args.full_path_check)
     photos = read_jsonl(required[1], 'photo_id', {'photo_frames'}, sample_size, rng, root, args.full_path_check)
-    raw_labels = json.loads(required[2].read_text())
-    if not isinstance(raw_labels, list):
-        raise TypeError('label.json must contain a JSON array')
-    label_pairs, label_errors = [], []
-    for index, row in enumerate(raw_labels):
-        try:
-            if not isinstance(row, dict):
-                raise TypeError('not an object')
-            label_pairs.append((str(row['photo_id']), str(row['item_id'])))
-        except Exception as exc:
-            if len(label_errors) < 20:
-                label_errors.append({'index': index, 'error': str(exc)})
+    label_source_count, label_pairs, label_error_count, label_errors = read_labels(labels_path)
     photo_label_counts = Counter(photo for photo, _ in label_pairs)
     pair_counts = Counter(label_pairs)
     missing_item_paths = items['missing_path_examples'] if args.full_path_check else [
@@ -126,23 +155,28 @@ def main():
     missing_frame_paths = photos['missing_path_examples'] if args.full_path_check else [
         (identity, relative) for identity, relative in photos['path_sample']
         if not relative or not (root / relative).is_file()]
+    actual_missing_items = items['missing_path_count'] if args.full_path_check else len(missing_item_paths)
+    actual_missing_frames = photos['missing_path_count'] if args.full_path_check else len(missing_frame_paths)
     critical = {
-        'item_json_errors': len(items['errors']), 'photo_json_errors': len(photos['errors']),
-        'label_errors': len(label_errors), 'duplicate_item_ids': items['duplicates'],
+        'item_json_errors': items['error_count'], 'photo_json_errors': photos['error_count'],
+        'label_errors': label_error_count, 'duplicate_item_ids': items['duplicates'],
         'duplicate_photo_ids': photos['duplicates'],
         'duplicate_label_pairs': sum(value - 1 for value in pair_counts.values()),
         'photos_with_multiple_labels': sum(value > 1 for value in photo_label_counts.values()),
         'missing_photo_references': sum(photo not in photos['ids'] for photo, _ in label_pairs),
         'missing_item_references': sum(item not in items['ids'] for _, item in label_pairs),
         'photos_without_labels': len(photos['ids'] - set(photo_label_counts)),
-        'missing_item_images': items['missing_path_count'] if args.full_path_check else len(missing_item_paths),
-        'missing_frames': photos['missing_path_count'] if args.full_path_check else len(missing_frame_paths),
+        'unexpected_missing_item_images': max(0, actual_missing_items - args.allow_missing_item_images),
+        'missing_frames': actual_missing_frames,
     }
     result = {
         'data_root': str(root), 'seed': args.seed,
         'path_check': 'full' if args.full_path_check else f'reservoir_sample_{args.path_sample_size}',
-        'counts': {'items': items['count'], 'photos': photos['count'], 'labels': len(raw_labels)},
+        'counts': {'items': items['count'], 'photos': photos['count'], 'labels': label_source_count,
+                   'valid_label_pairs': len(label_pairs)},
         'critical_checks': critical,
+        'known_or_allowed_issues': {'actual_missing_item_images': actual_missing_items,
+                                    'allowed_missing_item_images': args.allow_missing_item_images},
         'frame_count_distribution': dict(sorted(photos['frame_counts'].items())),
         'nonempty_video_text': {field: {'count': photos['text_counts'][field],
                                         'rate': photos['text_counts'][field] / photos['count'] if photos['count'] else 0}

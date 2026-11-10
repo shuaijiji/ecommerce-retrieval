@@ -19,6 +19,24 @@ def write_lines(values, path):
     temporary.replace(path)
 
 
+def read_pairs(path):
+    if path.suffix == '.jsonl':
+        pairs = []
+        with path.open(encoding='utf-8') as handle:
+            for line_number, line in enumerate(handle, 1):
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                if not isinstance(row, dict):
+                    raise TypeError(f'not an object at line {line_number}')
+                pairs.append((str(row['photo_id']), str(row['item_id'])))
+        return pairs
+    raw = json.loads(path.read_text())
+    if not isinstance(raw, list):
+        raise TypeError('label JSON must contain an array')
+    return [(str(row['photo_id']), str(row['item_id'])) for row in raw]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--labels', type=Path, required=True)
@@ -28,8 +46,7 @@ def main():
     args = parser.parse_args()
     if not 0 < args.dev_item_ratio < .5:
         raise ValueError('dev-item-ratio must be between 0 and 0.5')
-    raw = json.loads(args.labels.read_text())
-    pairs = [(str(row['photo_id']), str(row['item_id'])) for row in raw]
+    pairs = read_pairs(args.labels)
     photo_counts = Counter(photo for photo, _ in pairs)
     if any(value != 1 for value in photo_counts.values()):
         raise ValueError('each photo must have exactly one label before splitting')
