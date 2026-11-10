@@ -49,3 +49,11 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 ## 训练前诊断
 
 `analyze_rerank_errors.py` 对已经完成的精排结果做标签侧错误分解，并可成对比较两个嵌套候选实验。`run_error_analysis_top25.sh` 按“Top-10 错误分解 → Top-25 全新零训练精排 → 成对对照”的固定顺序运行。详情见 [RERANK.md](RERANK.md)。
+
+## 训练数据准备
+
+- `locate_training_data.py`：在本地数据目录中查找已解压且同时包含商品/视频元数据的根目录，不进入巨型图片树。
+- `audit_training_data.py`：流式检查训练 JSONL、标签引用、重复/冲突、文本覆盖和图片路径；默认随机检查各 10,000 条路径，可用 `--full-path-check` 全量检查且不会把全部路径留在内存。
+- `split_training_data.py`：按 item_id 做稳定哈希划分，只输出 ID 清单，不复制媒体。该版本确保商品 ID 不重叠，但尚未合并近重复图片组，因此不能直接视为最终开发集。
+
+远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
