@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import audit_training_data
 import prepare_training_pairs
+import propose_item_duplicate_groups
 import split_training_data
 
 
@@ -63,6 +64,28 @@ class TrainingDataTest(unittest.TestCase):
         self.assertFalse(train_items & dev_items)
         self.assertEqual(len(train_items | dev_items), 19)
         self.assertEqual(json.loads((out / 'manifest.json').read_text())['counts']['removed_exact_duplicate_rows'], 0)
+
+    def test_duplicate_group_proposals(self):
+        hash_dir = self.root / 'hashes'
+        (hash_dir / 'shards').mkdir(parents=True)
+        rows = [
+            {'item_id': 'a', 'item_image': 'a.jpg', 'file_sha256': 'sha-a', 'phash63': '0000000000000000', 'error': None},
+            {'item_id': 'b', 'item_image': 'b.jpg', 'file_sha256': 'sha-b', 'phash63': '0000000000000001', 'error': None},
+            {'item_id': 'c', 'item_image': 'c.jpg', 'file_sha256': 'same', 'phash63': '7fffffffffffffff', 'error': None},
+            {'item_id': 'd', 'item_image': 'd.jpg', 'file_sha256': 'same', 'phash63': '7ffffffffffffffe', 'error': None},
+            {'item_id': 'e', 'item_image': 'e.jpg', 'file_sha256': 'sha-e', 'phash63': '3333333333333333', 'error': None},
+        ]
+        (hash_dir / 'shards/shard_0000000.jsonl').write_text('\n'.join(map(json.dumps, rows)) + '\n')
+        groups, summary = self.root / 'groups.jsonl', self.root / 'groups_summary.json'
+        with patch.object(sys, 'argv', ['groups', '--hash-dir', str(hash_dir),
+                                       '--output-groups', str(groups), '--output-summary', str(summary),
+                                       '--hamming-threshold', '3']):
+            propose_item_duplicate_groups.main()
+        result = json.loads(summary.read_text())
+        self.assertEqual(result['item_count'], 5)
+        self.assertEqual(result['proposed_group_count'], 2)
+        self.assertEqual(result['items_in_proposed_groups'], 4)
+        self.assertEqual(result['singleton_items'], 1)
 
 
 if __name__ == '__main__':

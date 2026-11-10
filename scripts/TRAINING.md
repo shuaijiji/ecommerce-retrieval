@@ -52,6 +52,34 @@ python scripts/split_training_data.py \
 
 此步骤不会复制图片。它保证 train/dev 的 item_id 不重叠，但尚未处理不同 item_id 的近重复图片，因此当前只作为初始划分。近重复分组完成前不得把它作为最终开发集，也不得据此选择最终模型。
 
+## 3. 商品图片重复候选
+
+先在独立目录做 1,000 张功能预跑：
+
+```bash
+conda activate ecom-infer
+python scripts/hash_item_images.py \
+  --data-root "$TRAIN_ROOT" \
+  --exclude-item-id 20304330443907 \
+  --workers 16 \
+  --limit 1000 \
+  --output-dir artifacts/train_v0/item_hashes_pilot
+```
+
+预跑 `error_count=0` 后，去掉 `--limit` 并使用全新输出目录 `artifacts/train_v0/item_hashes_full`。脚本按 10,000 商品原子分片，可断点续跑；每张图保存文件 SHA-256、尺寸及版本固定的 63-bit DCT 感知哈希。
+
+完成后只生成候选簇，不直接修改划分：
+
+```bash
+python scripts/propose_item_duplicate_groups.py \
+  --hash-dir artifacts/train_v0/item_hashes_full \
+  --hamming-threshold 3 \
+  --output-groups artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  --output-summary artifacts/train_v0/proposed_item_duplicate_summary.json
+```
+
+感知哈希候选簇必须先做大小分布检查和抽样视觉核验。未经核验时状态为 `proposed_not_confirmed`，不得用于最终划分。
+
 ## 后续门槛
 
 只有 `audit_full.json` 的关键错误全部为 0，且近重复分组后的最终划分固定，才继续：冻结召回器生成 hard negatives → 1～5 万条 SFT 冒烟 → 固定 Top-10 评估 → 扩大训练 → 动态 Top-25。GRPO 不在第一阶段范围内。

@@ -56,5 +56,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `audit_training_data.py`：流式检查训练 JSONL、标签引用、重复/冲突、文本覆盖和图片路径；默认随机检查各 10,000 条路径，可用 `--full-path-check` 全量检查且不会把全部路径留在内存。
 - `prepare_training_pairs.py`：在不修改原始文件的前提下去除完全重复标签行，并按显式 item_id 排除无法训练的样本，保存清洗清单与哈希。
 - `split_training_data.py`：按 item_id 做稳定哈希划分，只输出 ID 清单，不复制媒体。该版本确保商品 ID 不重叠，但尚未合并近重复图片组，因此不能直接视为最终开发集。
+- `hash_item_images.py`：多进程、分片、可断点续跑地计算商品图文件 SHA-256 和版本固定的 DCT 感知哈希。
+- `propose_item_duplicate_groups.py`：用精确哈希和 Hamming 距离提出重复候选簇；输出明确标记为待核验，不会自动改变开发集。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
