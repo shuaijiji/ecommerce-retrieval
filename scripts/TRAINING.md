@@ -91,7 +91,20 @@ python scripts/sample_item_duplicate_groups.py \
   --largest-count 20
 ```
 
-抽样由 20 个最大感知候选簇和 80 个固定 seed 随机簇组成。查看输出目录中的 `review_sheet_*.jpg`；审核结论仅允许记为 `same_or_near_duplicate`、`different` 或 `uncertain`。只在抽样误合并率可接受并解释大簇后，才把候选组用于最终 group-disjoint 划分。
+抽样由 20 个最大感知候选簇和 80 个固定 seed 随机簇组成。查看输出目录中的 `review_sheet_*.jpg`；审核结论仅允许记为 `same_or_near_duplicate`、`different` 或 `uncertain`。
+
+若视觉核验不可行，采用保守隔离策略：不删除任何原始数据，把全部候选簇商品固定留在训练侧，开发集只从 singleton 商品中确定性抽取；训练 hard negatives 时禁止同一候选簇成员互为负例：
+
+```bash
+python scripts/split_training_data.py \
+  --labels artifacts/train_v0/clean_labels.jsonl \
+  --dev-item-ratio 0.02 \
+  --seed 20261110 \
+  --quarantine-groups artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  --output-dir artifacts/train_v0/split_quarantine_duplicates
+```
+
+该策略不声称感知候选已被人工确认，而是通过“不进入 dev”消除已发现候选造成的跨集合泄漏。输出额外包含 `quarantined_item_ids.txt` 和 `quarantined_photo_ids.txt`。
 
 ## 后续门槛
 

@@ -110,6 +110,26 @@ class TrainingDataTest(unittest.TestCase):
         shown = sample_item_duplicate_groups.select_members(members, 2)
         self.assertEqual([row['item_id'] for row in shown], ['a', 'c'])
 
+    def test_quarantine_duplicate_groups_from_dev(self):
+        groups = self.root / 'groups.jsonl'
+        groups.write_text(json.dumps({
+            'proposed_group_id': 'g1', 'size': 2,
+            'members': [{'item_id': 'i1'}, {'item_id': 'i2'}]
+        }) + '\n')
+        out = self.root / 'quarantine_split'
+        with patch.object(sys, 'argv', ['split', '--labels', str(self.labels), '--output-dir', str(out),
+                                       '--dev-item-ratio', '.49', '--seed', '1',
+                                       '--quarantine-groups', str(groups)]):
+            split_training_data.main()
+        dev_items = set((out / 'dev_item_ids.txt').read_text().splitlines())
+        train_items = set((out / 'train_item_ids.txt').read_text().splitlines())
+        self.assertFalse({'i1', 'i2'} & dev_items)
+        self.assertTrue({'i1', 'i2'} <= train_items)
+        manifest = json.loads((out / 'manifest.json').read_text())
+        self.assertEqual(manifest['duplicate_policy'], 'quarantine_all_proposed_groups_from_dev')
+        self.assertEqual(manifest['counts']['quarantined_items'], 2)
+        self.assertTrue(manifest['near_duplicate_handling_done'])
+
 
 if __name__ == '__main__':
     unittest.main()
