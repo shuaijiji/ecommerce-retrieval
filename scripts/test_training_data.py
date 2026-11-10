@@ -9,6 +9,7 @@ from unittest.mock import patch
 import audit_training_data
 import prepare_training_pairs
 import propose_item_duplicate_groups
+import sample_item_duplicate_groups
 import split_training_data
 
 
@@ -86,6 +87,28 @@ class TrainingDataTest(unittest.TestCase):
         self.assertEqual(result['proposed_group_count'], 2)
         self.assertEqual(result['items_in_proposed_groups'], 4)
         self.assertEqual(result['singleton_items'], 1)
+
+    def test_duplicate_review_selection(self):
+        groups = self.root / 'groups.jsonl'
+        rows = [
+            {'proposed_group_id': 'g1', 'size': 2, 'exact_file_hash_count': 1, 'members': []},
+            {'proposed_group_id': 'g2', 'size': 10, 'exact_file_hash_count': 10, 'members': []},
+            {'proposed_group_id': 'g3', 'size': 3, 'exact_file_hash_count': 2, 'members': []},
+            {'proposed_group_id': 'g4', 'size': 2, 'exact_file_hash_count': 2, 'members': []},
+        ]
+        groups.write_text('\n'.join(map(json.dumps, rows)) + '\n')
+        exact, perceptual = sample_item_duplicate_groups.load_candidates(groups)
+        self.assertEqual([row['proposed_group_id'] for row in exact], ['g1'])
+        selected = sample_item_duplicate_groups.sample_groups(perceptual, 2, 1, 20261110)
+        self.assertEqual(selected[0]['proposed_group_id'], 'g2')
+        self.assertEqual(len(selected), 2)
+        members = [
+            {'item_id': 'a', 'file_sha256': 'same', 'phash63': '0000000000000000'},
+            {'item_id': 'b', 'file_sha256': 'same', 'phash63': '0000000000000000'},
+            {'item_id': 'c', 'file_sha256': 'other', 'phash63': '7fffffffffffffff'},
+        ]
+        shown = sample_item_duplicate_groups.select_members(members, 2)
+        self.assertEqual([row['item_id'] for row in shown], ['a', 'c'])
 
 
 if __name__ == '__main__':

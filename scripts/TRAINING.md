@@ -80,6 +80,19 @@ python scripts/propose_item_duplicate_groups.py \
 
 感知哈希候选簇必须先做大小分布检查和抽样视觉核验。未经核验时状态为 `proposed_not_confirmed`，不得用于最终划分。
 
+全量候选生成后，自动跳过字节级完全相同的组，对“文件不同但感知哈希相似”的候选生成确定性抽查拼图：
+
+```bash
+python scripts/sample_item_duplicate_groups.py \
+  --data-root "$TRAIN_ROOT" \
+  --groups artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  --output-dir artifacts/train_v0/duplicate_visual_review \
+  --sample-size 100 \
+  --largest-count 20
+```
+
+抽样由 20 个最大感知候选簇和 80 个固定 seed 随机簇组成。查看输出目录中的 `review_sheet_*.jpg`；审核结论仅允许记为 `same_or_near_duplicate`、`different` 或 `uncertain`。只在抽样误合并率可接受并解释大簇后，才把候选组用于最终 group-disjoint 划分。
+
 ## 后续门槛
 
 只有 `audit_full.json` 的关键错误全部为 0，且近重复分组后的最终划分固定，才继续：冻结召回器生成 hard negatives → 1～5 万条 SFT 冒烟 → 固定 Top-10 评估 → 扩大训练 → 动态 Top-25。GRPO 不在第一阶段范围内。
