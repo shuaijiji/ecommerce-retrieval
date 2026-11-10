@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import audit_training_data
+import prepare_training_pairs
 import split_training_data
 
 
@@ -43,15 +44,25 @@ class TrainingDataTest(unittest.TestCase):
         self.assertEqual(result['counts'], {'items': 20, 'photos': 20, 'labels': 21, 'valid_label_pairs': 21})
         self.assertFalse(any(result['critical_checks'].values()))
         self.assertEqual(result['known_or_allowed_issues']['duplicate_label_rows'], 1)
+        clean_labels = self.root / 'clean.jsonl'
+        clean_manifest = self.root / 'clean_manifest.json'
+        with patch.object(sys, 'argv', ['prepare', '--labels', str(self.labels),
+                                       '--output-labels', str(clean_labels), '--output-manifest', str(clean_manifest),
+                                       '--exclude-item-id', 'i20']):
+            prepare_training_pairs.main()
+        clean = json.loads(clean_manifest.read_text())
+        self.assertEqual(clean['removed_exact_duplicate_rows'], 1)
+        self.assertEqual(clean['excluded_unique_pairs'], 1)
+        self.assertEqual(clean['clean_pairs'], 19)
         out = self.root / 'split'
-        with patch.object(sys, 'argv', ['split', '--labels', str(self.labels), '--output-dir', str(out),
+        with patch.object(sys, 'argv', ['split', '--labels', str(clean_labels), '--output-dir', str(out),
                                        '--dev-item-ratio', '.25', '--seed', '1']):
             split_training_data.main()
         train_items = set((out / 'train_item_ids.txt').read_text().splitlines())
         dev_items = set((out / 'dev_item_ids.txt').read_text().splitlines())
         self.assertFalse(train_items & dev_items)
-        self.assertEqual(len(train_items | dev_items), 20)
-        self.assertEqual(json.loads((out / 'manifest.json').read_text())['counts']['removed_exact_duplicate_rows'], 1)
+        self.assertEqual(len(train_items | dev_items), 19)
+        self.assertEqual(json.loads((out / 'manifest.json').read_text())['counts']['removed_exact_duplicate_rows'], 0)
 
 
 if __name__ == '__main__':

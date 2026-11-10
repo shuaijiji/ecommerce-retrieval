@@ -37,8 +37,14 @@ python scripts/audit_training_data.py \
 ## 2. 初始 item-disjoint 划分
 
 ```bash
-python scripts/split_training_data.py \
+python scripts/prepare_training_pairs.py \
   --labels "$TRAIN_ROOT/label.jsonl" \
+  --exclude-item-id 20304330443907 \
+  --output-labels artifacts/train_v0/clean_labels.jsonl \
+  --output-manifest artifacts/train_v0/clean_labels_manifest.json
+
+python scripts/split_training_data.py \
+  --labels artifacts/train_v0/clean_labels.jsonl \
   --dev-item-ratio 0.02 \
   --seed 20261110 \
   --output-dir artifacts/train_v0/split_item_disjoint
