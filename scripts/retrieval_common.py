@@ -51,7 +51,10 @@ def sha256_file(path: Path, chunk_size: int = 1024 * 1024) -> str:
 
 def atomic_json_dump(value: Any, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
+    # A PID-qualified temporary name keeps concurrent index workers from
+    # replacing one another's temporary file.  os.replace still makes the
+    # final publication atomic.
+    temporary = path.with_name(f"{path.name}.tmp.{os.getpid()}")
     with temporary.open("w", encoding="utf-8") as handle:
         json.dump(value, handle, ensure_ascii=False, indent=2)
         handle.write("\n")

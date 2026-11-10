@@ -109,3 +109,26 @@ python scripts/split_training_data.py \
 ## 后续门槛
 
 只有 `audit_full.json` 的关键错误全部为 0，且近重复分组后的最终划分固定，才继续：冻结召回器生成 hard negatives → 1～5 万条 SFT 冒烟 → 固定 Top-10 评估 → 扩大训练 → 动态 Top-25。GRPO 不在第一阶段范围内。
+
+## 4. 冻结召回器的训练商品索引
+
+最终划分固定后，只对 `train_item_ids.txt` 中的商品建索引。这一步是冻结模型的离线推理，不更新任何参数。8 张 GPU 按索引分片互不重叠地并行处理，中断后重跑会校验并跳过已完成分片：
+
+```bash
+TRAIN_ROOT=/code/ecommerce-retrieval/data/train/all_data_package
+nohup bash scripts/run_train_item_index_8gpu.sh \
+  "$TRAIN_ROOT" \
+  artifacts/train_v0/split_quarantine_duplicates/train_item_ids.txt \
+  artifacts/train_v0/train_item_index \
+  > artifacts/train_v0/train_item_index_launcher.log 2>&1 &
+echo $! | tee artifacts/train_v0/train_item_index_launcher.pid
+```
+
+查看整体调度和单卡进度：
+
+```bash
+tail -f artifacts/train_v0/train_item_index_launcher.log
+tail -f artifacts/train_v0/train_item_index/logs/worker_0.log
+```
+
+完成标志是 `artifacts/train_v0/train_item_index/manifest.json` 存在且 `complete=true`。后续 hard-negative 脚本必须同时使用 `train_photo_ids.txt`、该商品索引和 `proposed_item_duplicate_groups.jsonl`：正例及同候选簇商品都不得输出为负例。

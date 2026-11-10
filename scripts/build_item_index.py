@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a resumable, sharded index for all evaluation items."""
+"""Build a resumable, sharded item index, optionally with multiple GPUs."""
 
 from __future__ import annotations
 
@@ -46,7 +46,37 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--shard-size", type=int, default=512)
     parser.add_argument("--image-size", type=int, default=512)
+    parser.add_argument(
+        "--item-ids",
+        type=Path,
+        help="optional newline-delimited allowlist, e.g. train_item_ids.txt",
+    )
+    parser.add_argument(
+        "--partitions",
+        type=int,
+        default=1,
+        help="number of disjoint shard workers",
+    )
+    parser.add_argument(
+        "--partition-index",
+        type=int,
+        default=0,
+        help="zero-based shard worker index",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        help="encode only the first N filtered items (smoke tests only)",
+    )
     return parser.parse_args()
+
+
+def read_id_allowlist(path: Path) -> list[str]:
+    ids = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
+    ids = [value for value in ids if value]
+    if len(ids) != len(set(ids)):
+        raise ValueError(f"duplicate IDs in {path}")
+    return ids
 
 
 def validate_existing_shard(path: Path, expected_ids: list[str]) -> bool:
@@ -68,10 +98,29 @@ def main() -> None:
     args = parse_args()
     if args.batch_size < 1 or args.shard_size < args.batch_size:
         raise ValueError("require 1 <= batch-size <= shard-size")
+    if args.partitions < 1 or not 0 <= args.partition_index < args.partitions:
+        raise ValueError("require partitions >= 1 and 0 <= partition-index < partitions")
+    if args.limit is not None and args.limit < 1:
+        raise ValueError("limit must be positive")
 
     item_path = args.data_root / "item_info.jsonl"
     items = read_jsonl(item_path)
     assert isinstance(items, list)
+    item_ids_sha256 = None
+    if args.item_ids is not None:
+        allowed_ids = read_id_allowlist(args.item_ids)
+        allowed = set(allowed_ids)
+        available = {str(row["item_id"]) for row in items}
+        missing = allowed - available
+        if missing:
+            examples = sorted(missing)[:10]
+            raise ValueError(f"{len(missing)} allowlisted items missing: {examples}")
+        items = [row for row in items if str(row["item_id"]) in allowed]
+        if len(items) != len(allowed):
+            raise RuntimeError("filtered item count does not match the allowlist")
+        item_ids_sha256 = sha256_file(args.item_ids)
+    if args.limit is not None:
+        items = items[: args.limit]
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     config = {
@@ -80,6 +129,8 @@ def main() -> None:
         "model_path": str(args.model),
         "model_config_sha256": sha256_file(args.model / "config.json"),
         "item_info_sha256": sha256_file(item_path),
+        "item_ids_sha256": item_ids_sha256,
+        "item_ids_source": str(args.item_ids) if args.item_ids else None,
         "item_count": len(items),
         "embedding_dimension": 2048,
         "image_size": args.image_size,
@@ -103,21 +154,19 @@ def main() -> None:
 
     print(f"items: {len(items)}")
     shard_paths: list[str] = []
-    shard_specs: list[tuple[int, int, list[dict], list[str], Path]] = []
+    shard_specs: list[tuple[int, int, int, list[dict], list[str], Path]] = []
 
-    for shard_start in range(0, len(items), args.shard_size):
+    for shard_number, shard_start in enumerate(range(0, len(items), args.shard_size)):
         shard_end = min(shard_start + args.shard_size, len(items))
         shard_items = items[shard_start:shard_end]
         shard_ids = [str(row["item_id"]) for row in shard_items]
         shard_path = args.output_dir / f"part-{shard_start:06d}-{shard_end:06d}.pt"
         shard_paths.append(shard_path.name)
-        shard_specs.append(
-            (shard_start, shard_end, shard_items, shard_ids, shard_path)
-        )
+        shard_specs.append((shard_number, shard_start, shard_end, shard_items, shard_ids, shard_path))
 
     completed = {
         shard_path
-        for _, _, _, shard_ids, shard_path in shard_specs
+        for _, _, _, _, shard_ids, shard_path in shard_specs
         if validate_existing_shard(shard_path, shard_ids)
     }
     if len(completed) == len(shard_specs):
@@ -132,15 +181,27 @@ def main() -> None:
         print("all item shards are already valid:", args.output_dir)
         return
 
+    assigned_specs = [
+        spec for spec in shard_specs if spec[0] % args.partitions == args.partition_index
+    ]
+    missing_assigned = [spec for spec in assigned_specs if spec[-1] not in completed]
+    if not missing_assigned:
+        print(
+            f"partition {args.partition_index}/{args.partitions} has no missing shards; "
+            "other partitions may still be running"
+        )
+        return
+
+    print(
+        f"partition {args.partition_index}/{args.partitions}: "
+        f"{len(missing_assigned)} missing of {len(assigned_specs)} assigned shards"
+    )
     print("loading model...")
     model = load_embedder(args.repo, args.model, args.image_size)
     run_start = time.perf_counter()
     newly_encoded = 0
 
-    for shard_start, shard_end, shard_items, shard_ids, shard_path in shard_specs:
-        if shard_path in completed:
-            print(f"resume: {shard_path.name} already valid")
-            continue
+    for _, shard_start, shard_end, shard_items, shard_ids, shard_path in missing_assigned:
 
         shard_embeddings: list[torch.Tensor] = []
         shard_started = time.perf_counter()
@@ -164,7 +225,7 @@ def main() -> None:
             )
 
         embeddings = torch.cat(shard_embeddings, dim=0)
-        temporary = shard_path.with_name(shard_path.name + ".tmp")
+        temporary = shard_path.with_name(f"{shard_path.name}.tmp.{os.getpid()}")
         torch.save(
             {"item_ids": shard_ids, "embeddings": embeddings},
             temporary,
@@ -175,15 +236,26 @@ def main() -> None:
             f"{time.perf_counter() - shard_started:.1f}s"
         )
 
-    atomic_json_dump(
-        {
-            "config": config_path.name,
-            "shards": shard_paths,
-            "complete": True,
-        },
-        args.output_dir / "manifest.json",
-    )
-    print("item index complete:", args.output_dir)
+    completed_after = {
+        shard_path
+        for _, _, _, _, shard_ids, shard_path in shard_specs
+        if validate_existing_shard(shard_path, shard_ids)
+    }
+    if len(completed_after) == len(shard_specs):
+        atomic_json_dump(
+            {
+                "config": config_path.name,
+                "shards": shard_paths,
+                "complete": True,
+            },
+            args.output_dir / "manifest.json",
+        )
+        print("item index complete:", args.output_dir)
+    else:
+        print(
+            f"partition complete; index progress "
+            f"{len(completed_after)}/{len(shard_specs)} shards"
+        )
 
 
 if __name__ == "__main__":
