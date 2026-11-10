@@ -197,6 +197,8 @@ def compare(args):
     if set(base_c) != set(new_c):
         raise ValueError('base and new query sets differ')
     transitions = Counter()
+    restricted_transitions = Counter()
+    score_diffs = []
     rows = []
     for pid in sorted(base_c):
         truth = labels[pid]
@@ -207,16 +209,28 @@ def compare(args):
         base_hit, new_hit = truth in base_ids, truth in new_ids
         base_ok = base_p[pid]['ranking'][0]['item_id'] == truth
         new_ok = new_p[pid]['ranking'][0]['item_id'] == truth
+        base_scores = {x['item_id']: x['score'] for x in base_p[pid]['ranking']}
+        new_scores = {x['item_id']: x['score'] for x in new_p[pid]['ranking']}
+        score_diffs.extend(abs(base_scores[item] - new_scores[item]) for item in base_ids)
+        # Counterfactual: use scores from the new run, but allow only the old
+        # candidate set. This separates run/batch drift from candidate expansion.
+        restricted_prediction = next(x['item_id'] for x in new_p[pid]['ranking'] if x['item_id'] in base_ids)
+        restricted_ok = restricted_prediction == truth
         key = f"{'hit' if base_hit else 'miss'}_to_{'hit' if new_hit else 'miss'}__{'correct' if base_ok else 'wrong'}_to_{'correct' if new_ok else 'wrong'}"
         transitions[key] += 1
+        restricted_key = f"{'correct' if base_ok else 'wrong'}_to_{'correct' if restricted_ok else 'wrong'}"
+        restricted_transitions[restricted_key] += 1
         rows.append({'photo_id': pid, 'truth_item_id': truth, 'base_candidate_hit': base_hit,
                      'new_candidate_hit': new_hit, 'base_correct': base_ok, 'new_correct': new_ok,
+                     'new_run_restricted_to_base_correct': restricted_ok,
+                     'new_run_restricted_to_base_prediction': restricted_prediction,
                      'base_candidate_count': len(base_ids), 'new_candidate_count': len(new_ids), 'transition': key})
     n = len(rows)
     base_hits = sum(x['base_candidate_hit'] for x in rows)
     new_hits = sum(x['new_candidate_hit'] for x in rows)
     base_correct = sum(x['base_correct'] for x in rows)
     new_correct = sum(x['new_correct'] for x in rows)
+    restricted_correct = sum(x['new_run_restricted_to_base_correct'] for x in rows)
     gained = sum(not x['base_correct'] and x['new_correct'] for x in rows)
     lost = sum(x['base_correct'] and not x['new_correct'] for x in rows)
     result = {
@@ -230,6 +244,20 @@ def compare(args):
                   'newly_correct_count': gained, 'newly_wrong_count': lost,
                   'net_correct_count': new_correct - base_correct,
                   'recovered_correct_per_new_candidate_hit': (new_correct - base_correct) / (new_hits - base_hits) if new_hits > base_hits else None},
+        'controlled_decomposition': {
+            'new_run_scores_restricted_to_base_system_top1': restricted_correct / n,
+            'run_or_batch_drift_net_correct_count': restricted_correct - base_correct,
+            'candidate_expansion_net_correct_count_same_run': new_correct - restricted_correct,
+            'candidate_expansion_top1_points_same_run': (new_correct - restricted_correct) / n,
+            'base_to_new_restricted_transitions': dict(sorted(restricted_transitions.items())),
+        },
+        'common_candidate_score_abs_diff': {
+            'count': len(score_diffs), 'mean': sum(score_diffs) / len(score_diffs),
+            'p50': percentile(score_diffs, .5), 'p95': percentile(score_diffs, .95),
+            'p99': percentile(score_diffs, .99), 'max': max(score_diffs),
+            'count_gt_1e-6': sum(x > 1e-6 for x in score_diffs),
+            'count_gt_1e-4': sum(x > 1e-4 for x in score_diffs),
+        },
         'paired_transitions': dict(sorted(transitions.items())),
         'inputs': {name: digest(getattr(args, name)) for name in
                    ('base_candidates', 'base_predictions', 'new_candidates', 'new_predictions', 'labels')},

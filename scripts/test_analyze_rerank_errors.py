@@ -82,6 +82,8 @@ class ErrorAnalysisTest(unittest.TestCase):
         self.assertEqual(result['delta']['newly_wrong_count'], 1)
         self.assertEqual(result['delta']['net_correct_count'], 1)
         self.assertAlmostEqual(result['new']['candidate_recall'], 1)
+        self.assertEqual(result['controlled_decomposition']['run_or_batch_drift_net_correct_count'], 0)
+        self.assertEqual(result['controlled_decomposition']['candidate_expansion_net_correct_count_same_run'], 1)
 
 
 if __name__ == '__main__':
