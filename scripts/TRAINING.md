@@ -132,3 +132,52 @@ tail -f artifacts/train_v0/train_item_index/logs/worker_0.log
 ```
 
 完成标志是 `artifacts/train_v0/train_item_index/manifest.json` 存在且 `complete=true`。后续 hard-negative 脚本必须同时使用 `train_photo_ids.txt`、该商品索引和 `proposed_item_duplicate_groups.jsonl`：正例及同候选簇商品都不得输出为负例。
+
+## 5. 冻结召回器生成 hard-negative 候选
+
+本阶段不直接生成 SFT 对话，而是为每个训练视频保存两路可审计的 Top-100 安全负例：纯视觉召回与多模态召回。脚本在完整训练商品池上打分，并强制屏蔽正例及正例所在的全部感知候选簇成员；官方验证集不参与候选生成。
+
+先在单卡上运行 1,000 个视频的 Pilot。Pilot 仍使用完整 764,049 商品索引，只限制查询视频数量：
+
+```bash
+conda activate ecom-infer
+cd /code/ecommerce-retrieval
+
+CUDA_VISIBLE_DEVICES=0 python -u scripts/mine_hard_negatives.py \
+  --data-root /code/ecommerce-retrieval/data/train/all_data_package \
+  --labels artifacts/train_v0/clean_labels.jsonl \
+  --photo-ids artifacts/train_v0/split_quarantine_duplicates/train_photo_ids.txt \
+  --item-index artifacts/train_v0/train_item_index \
+  --duplicate-groups artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  --output-dir artifacts/train_v0/hard_negative_candidates_pilot \
+  --limit 1000 \
+  --shard-size 1000
+```
+
+Pilot 完成后必须看到 `hard_negative_candidates_pilot/manifest.json` 的 `complete=true`、恰好 1 个结果分片和 1,000 行结果。结果分片会在恢复时重新校验 photo_id 顺序、两路 Top-K 长度、候选唯一性，以及正例/同候选簇成员均未混入负例。
+
+Pilot 通过后使用全新输出目录启动 8 卡全量任务：
+
+```bash
+nohup bash scripts/run_mine_hard_negatives_8gpu.sh \
+  /code/ecommerce-retrieval/data/train/all_data_package \
+  artifacts/train_v0/split_quarantine_duplicates \
+  artifacts/train_v0/train_item_index \
+  artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  artifacts/train_v0/hard_negative_candidates \
+  > artifacts/train_v0/hard_negative_candidates_launcher.log 2>&1 &
+
+echo $! | tee artifacts/train_v0/hard_negative_candidates_launcher.pid
+```
+
+每个 worker 只加载自己负责的视频元数据，但会把完整商品矩阵加载到对应 GPU，以保持与冻结召回协议一致的精确全池检索。输出按 1,000 个视频形成原子 JSONL 分片，8 个 worker 按分片编号互不重叠，可安全断点续跑。监控：
+
+```bash
+tail -f artifacts/train_v0/hard_negative_candidates/logs/worker_0.log
+find artifacts/train_v0/hard_negative_candidates/shards \
+  -name 'part-*.jsonl' | wc -l
+```
+
+最终预计 983 个分片。只有 launcher 日志出现 `hard-negative mining complete`，且 `hard_negative_candidates/manifest.json` 中 `complete=true`、分片数为 983，才视为完成。改变模型、索引、清洗标签、划分、重复簇、Top-K 或分片大小时必须使用新的输出目录。
+
+这些 Top-100 是带来源分数的候选池，不是最终 SFT 样本。下一步需从两路高排名错误、不同排名区间及少量随机负例中确定性采样，构造 1～5 万条 SFT 冒烟集，并保存候选来源和版本哈希。

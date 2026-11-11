@@ -58,5 +58,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `split_training_data.py`：按 item_id 做稳定哈希划分，只输出 ID 清单，不复制媒体。该版本确保商品 ID 不重叠，但尚未合并近重复图片组，因此不能直接视为最终开发集。
 - `hash_item_images.py`：多进程、分片、可断点续跑地计算商品图文件 SHA-256 和版本固定的 DCT 感知哈希。
 - `propose_item_duplicate_groups.py`：用精确哈希和 Hamming 距离提出重复候选簇；输出明确标记为待核验，不会自动改变开发集。
+- `mine_hard_negatives.py`：使用冻结训练商品索引，为训练视频生成纯视觉和多模态 Top-100 安全负例；强制排除正例及同一候选簇商品，按视频分片原子保存并可断点续跑。
+- `run_mine_hard_negatives_8gpu.sh`：将训练视频结果分片分配到 8 张 GPU，全部 worker 完成后统一校验并发布 manifest。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
