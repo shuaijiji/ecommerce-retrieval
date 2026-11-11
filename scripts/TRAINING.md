@@ -156,6 +156,8 @@ CUDA_VISIBLE_DEVICES=0 python -u scripts/mine_hard_negatives.py \
 
 Pilot 完成后必须看到 `hard_negative_candidates_pilot/manifest.json` 的 `complete=true`、恰好 1 个结果分片和 1,000 行结果。结果分片会在恢复时重新校验 photo_id 顺序、两路 Top-K 长度、候选唯一性，以及正例/同候选簇成员均未混入负例。
 
+2026-11-11 实际 Pilot 已通过：完整商品池上的 1,000 个视频写入 `part-000000-001000.jsonl`，用时 93.5 秒，随后回读 `partition 0/1 complete: 1000 photos` 和 `hard-negative candidates complete`。
+
 Pilot 通过后使用全新输出目录启动 8 卡全量任务：
 
 ```bash
