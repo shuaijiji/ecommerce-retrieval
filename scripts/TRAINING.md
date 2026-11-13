@@ -193,3 +193,55 @@ find artifacts/train_v0/hard_negative_candidates/shards \
 - 优先验证批量查询和异步数据预取，并限制每个 worker 的 CPU 线程，避免多个进程各自占用十多个核导致争用。
 - 改变 batch size、候选打包或数值协议可能造成 bf16 分数漂移，必须使用新输出目录，不能混用旧分片。
 - 在性能门槛通过前，不启动百万样本级全量任务。
+
+## 6. 构造精排 SFT 冒烟数据
+
+完整 hard-negative 候选必须先满足：launcher 日志出现 `hard-negative mining complete`，manifest 为 `complete=true` 且列出 983 个分片。数据构造采用 5,000 个确定性训练视频组，每组 1 个正例和 7 个负例，展开后为 40,000 个 pointwise yes/no pair，位于第一阶段 1～5 万 pair 的范围内。
+
+每组负例固定覆盖：纯视觉/多模态 Top-10、两路 11～50、两路 51～100，以及一个从训练商品池稳定哈希抽取的随机商品。若两路候选重合，先去重，再按联合原始排名补齐。正例和正例所在感知候选簇仍然禁止作为负例。
+
+先运行 100 视频数据 Pilot。该步骤只做 CPU 图片处理，不占 GPU：
+
+```bash
+conda activate ecom-infer
+cd /code/ecommerce-retrieval
+
+python scripts/prepare_reranker_sft.py \
+  --data-root /code/ecommerce-retrieval/data/train/all_data_package \
+  --photo-ids artifacts/train_v0/split_quarantine_duplicates/train_photo_ids.txt \
+  --train-item-ids artifacts/train_v0/split_quarantine_duplicates/train_item_ids.txt \
+  --candidates artifacts/train_v0/hard_negative_candidates \
+  --duplicate-groups artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  --output-dir artifacts/train_v0/reranker_sft_smoke_pilot \
+  --num-queries 100 \
+  --eval-queries 10 \
+  --negatives-per-query 7 \
+  --media-workers 16
+```
+
+Pilot 通过标准：`manifest.json` 中 `complete=true`、`effective_pointwise_pairs=800`，`swift_train.jsonl` 为 90 行、`swift_smoke_eval.jsonl` 为 10 行；每行包含 1 个 `<video>` 查询、1 个正例商品和 7 个负例商品，所有媒体路径存在。训练视频帧和商品图均先按既有灰底 letterbox 规则转为 `512×512` 无损 PNG，奇数视频帧通过重复最后一个路径补齐。
+
+Pilot 通过后使用新目录构造正式 40,000 pair 冒烟集：
+
+```bash
+python scripts/prepare_reranker_sft.py \
+  --data-root /code/ecommerce-retrieval/data/train/all_data_package \
+  --photo-ids artifacts/train_v0/split_quarantine_duplicates/train_photo_ids.txt \
+  --train-item-ids artifacts/train_v0/split_quarantine_duplicates/train_item_ids.txt \
+  --candidates artifacts/train_v0/hard_negative_candidates \
+  --duplicate-groups artifacts/train_v0/proposed_item_duplicate_groups.jsonl \
+  --output-dir artifacts/train_v0/reranker_sft_smoke_40k \
+  --num-queries 5000 \
+  --eval-queries 500 \
+  --negatives-per-query 7 \
+  --media-workers 32
+```
+
+输出 `samples.jsonl` 保存 photo_id、正例及每个负例的来源路、分层区间、原始排名和分数；`swift_train.jsonl`/`swift_smoke_eval.jsonl` 使用 ms-swift 多模态 reranker 的 `messages`、`videos`、`positive_messages/positive_images`、`negative_messages/negative_images` 格式。500 条 query holdout 只用于监控训练管线和损失，不是 item-disjoint 的最终选模开发集。
+
+训练框架采用 ms-swift 的 Qwen3-VL-Reranker pointwise loss。官方格式和示例：
+
+- https://github.com/modelscope/ms-swift/blob/main/docs/source/BestPractices/Reranker.md
+- https://github.com/modelscope/ms-swift/blob/main/examples/train/reranker/qwen3/qwen3_vl_reranker.sh
+
+安装和训练必须使用新的 `ecom-train` 环境，不升级或破坏已验证的 `ecom-infer`。在真正启动 8 卡训练前，先对 100 组数据做单卡前向/反向、显存和 token 长度 Pilot，再按本文件的 1/2/4/8 卡性能门槛确定 batch、CPU worker 和并行配置。
