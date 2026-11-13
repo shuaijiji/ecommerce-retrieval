@@ -245,3 +245,37 @@ python scripts/prepare_reranker_sft.py \
 - https://github.com/modelscope/ms-swift/blob/main/examples/train/reranker/qwen3/qwen3_vl_reranker.sh
 
 安装和训练必须使用新的 `ecom-train` 环境，不升级或破坏已验证的 `ecom-infer`。在真正启动 8 卡训练前，先对 100 组数据做单卡前向/反向、显存和 token 长度 Pilot，再按本文件的 1/2/4/8 卡性能门槛确定 batch、CPU worker 和并行配置。
+
+## 7. 单卡精排训练 Pilot
+
+正式 40,000 pair 数据发布前必须回读 `manifest.json`：`complete=true`、`effective_pointwise_pairs=40000`，且 train/eval query 数分别为 4,500/500。已确认后先创建独立环境：
+
+```bash
+conda create -n ecom-train python=3.11 -y
+conda activate ecom-train
+
+python -m pip install --upgrade pip
+python -m pip install "transformers>=4.57" "qwen_vl_utils>=0.0.14" "ms-swift>=4.0" packaging ninja
+python -m pip install flash-attn --no-build-isolation
+```
+
+安装后先记录实际版本，不依赖未锁定的“最新版”复现：
+
+```bash
+python -c 'import torch,transformers,swift,qwen_vl_utils; print(torch.__version__, torch.version.cuda); print(transformers.__version__); print(swift.__version__)'
+```
+
+先运行单卡 10 step 功能 Pilot，使用 100 组、800 pair 数据，不直接读取正式 40k 目录：
+
+```bash
+cd /code/ecommerce-retrieval
+bash scripts/run_reranker_sft_pilot.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_pilot \
+  artifacts/train_v0/reranker_sft_lora_pilot_v1 \
+  2>&1 | tee artifacts/train_v0/reranker_sft_lora_pilot_v1.launch.log
+```
+
+脚本固定 `MAX_POSITIVE_SAMPLES=1`、`MAX_NEGATIVE_SAMPLES=7`。ms-swift 会把每个 query 展开为 8 个 pointwise pair，因此 `per_device_train_batch_size=1` 时实际每步是 8 对，不得误解为 1 对。Pilot 采用 LoRA rank 8/alpha 32、bf16、FlashAttention、padding-free 和 4,096 token 上限，与官方 reranker 脚手架保持一致。
+
+通过标准：模型、数据和媒体全部成功加载；训练完成 10 step；初始和 step 5/10 评估成功；`loss`、`eval_loss`、梯度范数均为有限数；无 OOM/NaN/媒体解码或 token 截断导致的数据大量丢弃；并记录 `nvidia-smi` 的峰值显存、SM 利用率和 10 step 总耗时。功能 Pilot 通过后才设计更长的 1/2/4/8 卡性能 Pilot，不直接启动正式训练。

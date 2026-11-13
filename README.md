@@ -4,7 +4,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-13：零训练 Top-10 完整系统 Top-1 为 79.36%，平均延迟 1.166 秒/视频。Top-25 并集将 Recall 提至 93.62%，但受控 Top-1 只增加 0.73pp，平均延迟增至 2.823 秒，因此 Top-10 保持默认方案。训练侧 764,049 商品索引和 982,797 视频的双路 hard-negative 候选均已全量完成并通过 manifest 校验；当前开始构造 5,000 视频组、40,000 pair 的精排 SFT 冒烟数据，尚未启动训练。
+截至 2026-11-13：零训练 Top-10 完整系统 Top-1 为 79.36%，平均延迟 1.166 秒/视频。Top-25 并集将 Recall 提至 93.62%，但受控 Top-1 只增加 0.73pp，平均延迟增至 2.823 秒，因此 Top-10 保持默认方案。训练侧 764,049 商品索引、982,797 视频的双路 hard-negative 候选，以及 5,000 视频组/40,000 pair 的精排 SFT 数据均已完成并通过 manifest 校验；当前进入独立训练环境的单卡 10 step LoRA 功能 Pilot。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)
@@ -22,4 +22,4 @@
 
 2026-11-11：训练商品索引和 hard-negative Pilot 已完成；8 卡全量候选生成已启动。当前产物是两路 Top-100 安全负例候选池，不是最终 SFT 样本。
 
-2026-11-13：hard-negative 全量 983 个分片和最终 manifest 已通过；开始构造 40,000 pair 的 Qwen3-VL-Reranker pointwise SFT 冒烟数据。
+2026-11-13：hard-negative 全量 983 个分片、40,000 pair 的 Qwen3-VL-Reranker pointwise SFT 数据及最终 manifest 均已通过；开始单卡训练功能 Pilot。

@@ -61,5 +61,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `mine_hard_negatives.py`：使用冻结训练商品索引，为训练视频生成纯视觉和多模态 Top-100 安全负例；强制排除正例及同一候选簇商品，按视频分片原子保存并可断点续跑。
 - `run_mine_hard_negatives_8gpu.sh`：将训练视频结果分片分配到 8 张 GPU，全部 worker 完成后统一校验并发布 manifest。
 - `prepare_reranker_sft.py`：从完整 hard-negative 候选中确定性抽取视频组和分层负例，物化与评估一致的 512×512 无损媒体，并输出 ms-swift Qwen3-VL-Reranker 数据格式。
+- `run_reranker_sft_pilot.sh`：在独立 `ecom-train` 环境中对 100 组 Pilot 数据执行单卡 Qwen3-VL-Reranker-2B LoRA pointwise 前向/反向和评估链路验证。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
