@@ -147,7 +147,7 @@ TRAIN_PID=$!
 
 monitor_gpu &
 GPU_MONITOR_PID=$!
-monitor_cpu &
+monitor_cpu >> "$CPU_LOG" &
 CPU_MONITOR_PID=$!
 
 set +e
@@ -167,6 +167,14 @@ fi
 
 grep -q "'train_runtime'" "$TRAIN_LOG" || {
   echo "training exited successfully but train_runtime is missing: $TRAIN_LOG" >&2
+  exit 3
+}
+test "$(wc -l < "$GPU_LOG")" -gt 1 || {
+  echo "GPU monitoring produced no samples: $GPU_LOG" >&2
+  exit 3
+}
+test "$(wc -l < "$CPU_LOG")" -gt 1 || {
+  echo "CPU monitoring produced no samples: $CPU_LOG" >&2
   exit 3
 }
 
