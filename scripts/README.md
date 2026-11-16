@@ -62,5 +62,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `run_mine_hard_negatives_8gpu.sh`：将训练视频结果分片分配到 8 张 GPU，全部 worker 完成后统一校验并发布 manifest。
 - `prepare_reranker_sft.py`：从完整 hard-negative 候选中确定性抽取视频组和分层负例，物化与评估一致的 512×512 无损媒体，并输出 ms-swift Qwen3-VL-Reranker 数据格式。
 - `run_reranker_sft_pilot.sh`：在独立 `ecom-train` 环境中对 100 组 Pilot 数据执行单卡 Qwen3-VL-Reranker-2B LoRA pointwise 前向/反向和评估链路验证。
+- `run_reranker_listwise_pilot.sh`：在正式 4,500/500 query 数据上运行单卡 50-step LoRA listwise 目标函数 Pilot，用训练前后 MRR/NDCG 判断是否修复 pointwise 的负类塌缩。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
