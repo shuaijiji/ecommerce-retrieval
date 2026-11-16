@@ -25,4 +25,4 @@
 
 2026-11-13：hard-negative 全量 983 个分片、40,000 pair 的 Qwen3-VL-Reranker pointwise SFT 数据及最终 manifest 均已通过；开始单卡训练功能 Pilot。
 
-2026-11-16：独立训练环境和单卡 10-step LoRA pointwise Pilot 已通过，无 OOM/NaN，checkpoint 成功保存；下一步进行正式数据上的 1/2/4/8 卡吞吐与资源利用测试。
+2026-11-16：pointwise 10-step Pilot 虽通过功能链路，但 MRR/NDCG 退化且出现负类偏置，因此不扩容；正式 4,500/500 query 上的 listwise 50-step Pilot 排序指标单调改善，下一步进行隔离评估耗时的 1/2/4/8 卡吞吐与资源利用测试。

@@ -279,3 +279,51 @@ bash scripts/run_reranker_sft_pilot.sh \
 脚本固定 `MAX_POSITIVE_SAMPLES=1`、`MAX_NEGATIVE_SAMPLES=7`。ms-swift 会把每个 query 展开为 8 个 pointwise pair，因此 `per_device_train_batch_size=1` 时实际每步是 8 对，不得误解为 1 对。Pilot 采用 LoRA rank 8/alpha 32、bf16、FlashAttention、padding-free 和 4,096 token 上限，与官方 reranker 脚手架保持一致。
 
 通过标准：模型、数据和媒体全部成功加载；训练完成 10 step；初始和 step 5/10 评估成功；`loss`、`eval_loss`、梯度范数均为有限数；无 OOM/NaN/媒体解码或 token 截断导致的数据大量丢弃；并记录 `nvidia-smi` 的峰值显存、SM 利用率和 10 step 总耗时。功能 Pilot 通过后才设计更长的 1/2/4/8 卡性能 Pilot，不直接启动正式训练。
+
+## 8. Listwise 排序与性能 Pilot
+
+pointwise 10-step Pilot 的 MRR/NDCG 从 0.6833/0.7655 退化到 0.6333/0.7286，因此不扩容该配置。正式 4,500/500 query 上的 listwise 50-step Pilot 已通过排序方向门槛：step 0/25/50 MRR 为 0.78295714/0.78590238/0.79066905，NDCG 为 0.83696853/0.83918828/0.84271104。500 个 query 仅用于训练管线监控，不能替代 item-disjoint 开发集。
+
+性能 Pilot 使用正式 4,500 个训练 query，但关闭验证和 checkpoint 保存，避免把每轮约 130 秒的 500-query 评估计入训练吞吐。固定每卡 batch size 1、gradient accumulation 1、200 step；因此 N 卡每个 optimizer step 处理 N 个 query，等效 pointwise pair/s 固定按 query/s × 8 折算。1/2/4/8 卡必须分别使用全新输出目录：
+
+```bash
+conda activate ecom-train-v2
+cd /code/ecommerce-retrieval
+
+bash scripts/run_reranker_listwise_perf_pilot.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_listwise_perf_1gpu \
+  1
+
+bash scripts/run_reranker_listwise_perf_pilot.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_listwise_perf_2gpu \
+  2
+
+bash scripts/run_reranker_listwise_perf_pilot.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_listwise_perf_4gpu \
+  4
+
+bash scripts/run_reranker_listwise_perf_pilot.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_listwise_perf_8gpu \
+  8
+```
+
+脚本通过 `NPROC_PER_NODE` 启动 ms-swift DDP，每次保存 `train.log`、`run_info.txt`、`gpu_metrics.csv` 和 `cpu_metrics.csv`。运行期间不应并发其他 GPU 任务。四组均成功后汇总：
+
+```bash
+python scripts/summarize_reranker_listwise_perf.py \
+  artifacts/train_v0/reranker_listwise_perf_1gpu \
+  artifacts/train_v0/reranker_listwise_perf_2gpu \
+  artifacts/train_v0/reranker_listwise_perf_4gpu \
+  artifacts/train_v0/reranker_listwise_perf_8gpu \
+  --output artifacts/train_v0/reranker_listwise_perf_summary.json
+```
+
+汇总器以 `N × max_steps × per-device batch / train_runtime` 计算 query/s，以 query/s × 8 计算等效 pair/s；资源监控只截取进程结束前与 `train_runtime` 等长的纯训练窗口，排除模型加载和数据初始化，再报告逐卡 GPU 利用率中位数、峰值显存、功耗及训练进程 CPU/RSS。正式训练门槛为：8 卡 query/s 至少达到单卡 4 倍，且 8 张卡的利用率中位数均不低于 60%。任一条件不满足时先分析 DDP 通信、CPU 图片处理、数据读取和 worker 争用，不启动正式训练。

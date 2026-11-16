@@ -63,5 +63,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `prepare_reranker_sft.py`：从完整 hard-negative 候选中确定性抽取视频组和分层负例，物化与评估一致的 512×512 无损媒体，并输出 ms-swift Qwen3-VL-Reranker 数据格式。
 - `run_reranker_sft_pilot.sh`：在独立 `ecom-train` 环境中对 100 组 Pilot 数据执行单卡 Qwen3-VL-Reranker-2B LoRA pointwise 前向/反向和评估链路验证。
 - `run_reranker_listwise_pilot.sh`：在正式 4,500/500 query 数据上运行单卡 50-step LoRA listwise 目标函数 Pilot，用训练前后 MRR/NDCG 判断是否修复 pointwise 的负类塌缩。
+- `run_reranker_listwise_perf_pilot.sh`：对正式 4,500 个训练 query 运行隔离评估和保存耗时的 1/2/4/8 卡 listwise 性能 Pilot，并采集逐卡 GPU 与训练进程 CPU 指标。
+- `summarize_reranker_listwise_perf.py`：汇总四组性能 Pilot 的 query/s、等效 pair/s、资源指标和 8/1 加速比，按 4 倍吞吐及 60% 利用率门槛给出是否通过。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
