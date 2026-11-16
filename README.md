@@ -12,6 +12,7 @@
 - [Top-25 受控对照与训练准备](进展更新-2026-11-10.md)
 - [训练商品索引完成与 hard-negative 候选生成](进展更新-2026-11-11.md)
 - [hard-negative 全量完成与精排 SFT 数据构造](进展更新-2026-11-13.md)
+- [Qwen3-VL-Reranker 单卡训练链路通过](进展更新-2026-11-16.md)
 - [已验证脚本](scripts/README.md)
 
 远端为 8×H100 80GB。这里是本地记录目录，不是远端训练目录，文件尚未同步到远端。
@@ -23,3 +24,5 @@
 2026-11-11：训练商品索引和 hard-negative Pilot 已完成；8 卡全量候选生成已启动。当前产物是两路 Top-100 安全负例候选池，不是最终 SFT 样本。
 
 2026-11-13：hard-negative 全量 983 个分片、40,000 pair 的 Qwen3-VL-Reranker pointwise SFT 数据及最终 manifest 均已通过；开始单卡训练功能 Pilot。
+
+2026-11-16：独立训练环境和单卡 10-step LoRA pointwise Pilot 已通过，无 OOM/NaN，checkpoint 成功保存；下一步进行正式数据上的 1/2/4/8 卡吞吐与资源利用测试。
