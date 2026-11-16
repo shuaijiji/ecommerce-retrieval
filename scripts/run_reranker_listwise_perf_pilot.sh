@@ -90,12 +90,15 @@ monitor_gpu() {
 }
 
 monitor_cpu() {
-  while kill -0 "$TRAIN_PID" 2>/dev/null; do
+  while true; do
     timestamp=$(date --iso-8601=seconds)
-    ps -eo pcpu=,rss=,args= | awk -v ts="$timestamp" '
-      /swift|torchrun|torch\.distributed/ && !/awk/ {cpu += $1; rss += $2}
-      END {printf "%s,%.2f,%.2f\n", ts, cpu + 0, rss / 1024}
-    '
+    if ! ps -eo pcpu=,rss=,args= 2>/dev/null | awk -v ts="$timestamp" '
+        /swift|torchrun|torch\.distributed/ && !/awk/ {cpu += $1; rss += $2}
+        END {printf "%s,%.2f,%.2f\n", ts, cpu + 0, rss / 1024}
+      '
+    then
+      echo "$timestamp,0.00,0.00"
+    fi
     sleep "$MONITOR_INTERVAL"
   done
 }
