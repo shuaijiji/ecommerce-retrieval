@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT=\${1:-/code/ecommerce-retrieval}
-DATA_DIR=\${2:-$ROOT/artifacts/train_v0/reranker_sft_smoke_pilot}
-OUTPUT_DIR=\${3:-$ROOT/artifacts/train_v0/reranker_sft_lora_pilot}
-MODEL=\${ECOM_RERANK_MODEL:-$ROOT/models/Qwen3-VL-Reranker-2B}
-PILOT_GPU=\${PILOT_GPU:-0}
+ROOT=${1:-/code/ecommerce-retrieval}
+DATA_DIR=${2:-$ROOT/artifacts/train_v0/reranker_sft_smoke_pilot}
+OUTPUT_DIR=${3:-$ROOT/artifacts/train_v0/reranker_sft_lora_pilot}
+MODEL=${ECOM_RERANK_MODEL:-$ROOT/models/Qwen3-VL-Reranker-2B}
+PILOT_GPU=${PILOT_GPU:-0}
 
 TRAIN_DATA=$DATA_DIR/swift_train.jsonl
 VAL_DATA=$DATA_DIR/swift_smoke_eval.jsonl
 
-test -d "$MODEL"
-test -f "$TRAIN_DATA"
-test -f "$VAL_DATA"
-test -f "$DATA_DIR/manifest.json"
-command -v swift >/dev/null
+test -d "$MODEL" || { echo "missing model directory: $MODEL" >&2; exit 2; }
+test -f "$TRAIN_DATA" || { echo "missing training data: $TRAIN_DATA" >&2; exit 2; }
+test -f "$VAL_DATA" || { echo "missing validation data: $VAL_DATA" >&2; exit 2; }
+test -f "$DATA_DIR/manifest.json" || { echo "missing manifest: $DATA_DIR/manifest.json" >&2; exit 2; }
+command -v swift >/dev/null || { echo "swift is not installed in the active environment" >&2; exit 2; }
 
 python -c 'import json,sys; m=json.load(open(sys.argv[1])); assert m.get("complete") is True; assert m.get("effective_pointwise_pairs")==800' "$DATA_DIR/manifest.json"
 
@@ -31,8 +31,8 @@ export MAX_NEGATIVE_SAMPLES=7
 export IMAGE_MAX_TOKEN_NUM=1024
 export VIDEO_MAX_TOKEN_NUM=128
 export FPS_MAX_FRAMES=16
-export OMP_NUM_THREADS=\${OMP_NUM_THREADS:-8}
-export MKL_NUM_THREADS=\${MKL_NUM_THREADS:-8}
+export OMP_NUM_THREADS=${OMP_NUM_THREADS:-8}
+export MKL_NUM_THREADS=${MKL_NUM_THREADS:-8}
 
 echo "model=$MODEL"
 echo "train_data=$TRAIN_DATA"
