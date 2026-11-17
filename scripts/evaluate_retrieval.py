@@ -47,8 +47,10 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--item-index",
+        dest="item_indexes",
+        action="append",
         type=Path,
-        default=Path("/code/ecommerce-retrieval/artifacts/zero_shot_v0/items"),
+        help="item index directory; repeat to concatenate disjoint indexes",
     )
     parser.add_argument(
         "--output-dir",
@@ -58,8 +60,29 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--num-queries", type=int, default=100)
     parser.add_argument("--seed", type=int, default=20261105)
     parser.add_argument("--top-k", type=int, default=100)
+    parser.add_argument(
+        "--selection-strategy",
+        choices=("coverage", "uniform"),
+        default="coverage",
+        help="coverage preserves the historical pilot behavior; uniform is for fixed dev evaluation",
+    )
+    parser.add_argument(
+        "--labels",
+        type=Path,
+        help="JSON array or JSONL labels; defaults to DATA_ROOT/label.json",
+    )
+    parser.add_argument(
+        "--photo-ids",
+        type=Path,
+        help="optional newline-delimited allowlist from which queries are selected",
+    )
     parser.add_argument("--modes", nargs="+", choices=MODES, default=list(MODES))
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.item_indexes is None:
+        args.item_indexes = [Path("/code/ecommerce-retrieval/artifacts/zero_shot_v0/items")]
+    if args.labels is None:
+        args.labels = args.data_root / "label.json"
+    return args
 
 
 def load_item_index(index_dir: Path) -> tuple[list[str], torch.Tensor, dict]:
@@ -79,20 +102,69 @@ def load_item_index(index_dir: Path) -> tuple[list[str], torch.Tensor, dict]:
     return ids, matrix, config
 
 
+def load_item_indexes(index_dirs: list[Path]) -> tuple[list[str], torch.Tensor, list[dict]]:
+    if not index_dirs:
+        raise ValueError("at least one item index is required")
+    all_ids: list[str] = []
+    matrices: list[torch.Tensor] = []
+    configs: list[dict] = []
+    for index_dir in index_dirs:
+        ids, matrix, config = load_item_index(index_dir)
+        all_ids.extend(ids)
+        matrices.append(matrix)
+        configs.append(config)
+    if len(set(all_ids)) != len(all_ids):
+        raise RuntimeError("concatenated item indexes contain duplicate IDs")
+    reference = configs[0]
+    for config in configs[1:]:
+        for key in ("model_config_sha256", "embedding_dimension", "image_size", "dtype", "item_input"):
+            if config.get(key) != reference.get(key):
+                raise RuntimeError(f"item index configurations disagree on {key}")
+    return all_ids, torch.cat(matrices, dim=0), configs
+
+
+def load_labels(path: Path) -> list[dict[str, str]]:
+    if path.suffix == ".jsonl":
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    else:
+        rows = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(rows, list):
+        raise TypeError("labels must be a JSON array or JSONL objects")
+    normalized = [{"photo_id": str(row["photo_id"]), "item_id": str(row["item_id"])} for row in rows]
+    photo_ids = [row["photo_id"] for row in normalized]
+    if len(set(photo_ids)) != len(photo_ids):
+        raise ValueError("labels contain duplicate photo IDs")
+    return normalized
+
+
+def read_id_allowlist(path: Path) -> list[str]:
+    values = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if len(values) != len(set(values)):
+        raise ValueError(f"duplicate IDs in {path}")
+    return values
+
+
 def choose_photo_ids(
     labels: list[dict],
     photos: dict[str, dict],
     count: int,
     seed: int,
+    strategy: str = "coverage",
 ) -> list[str]:
     if count > len(labels):
         raise ValueError("num-queries exceeds label count")
     rng = random.Random(seed)
+    all_ids = [str(label["photo_id"]) for label in labels]
+    missing_photos = [photo_id for photo_id in all_ids if photo_id not in photos]
+    if missing_photos:
+        raise ValueError(f"{len(missing_photos)} labeled photos are missing from photo metadata")
+    if strategy == "uniform":
+        return rng.sample(all_ids, count)
+    if strategy != "coverage":
+        raise ValueError(f"unknown selection strategy: {strategy}")
     by_frame_count: dict[int, list[str]] = defaultdict(list)
-    all_ids: list[str] = []
     for label in labels:
         photo_id = str(label["photo_id"])
-        all_ids.append(photo_id)
         by_frame_count[len(photos[photo_id].get("photo_frames") or [])].append(photo_id)
 
     # Cover every observed frame count once, then fill randomly. This is a
@@ -145,15 +217,23 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     photos = read_jsonl(args.data_root / "photo_info.jsonl", "photo_id")
     assert isinstance(photos, dict)
-    with (args.data_root / "label.json").open("r", encoding="utf-8") as handle:
-        labels = json.load(handle)
+    labels = load_labels(args.labels)
+    if args.photo_ids is not None:
+        allowed_photo_ids = read_id_allowlist(args.photo_ids)
+        allowed = set(allowed_photo_ids)
+        labels = [row for row in labels if row["photo_id"] in allowed]
+        found = {row["photo_id"] for row in labels}
+        missing = allowed - found
+        if missing:
+            raise ValueError(f"{len(missing)} allowlisted photo IDs are missing from labels")
+        if len(labels) != len(allowed_photo_ids):
+            raise RuntimeError("filtered label count differs from photo allowlist")
     label_by_photo = {str(row["photo_id"]): str(row["item_id"]) for row in labels}
 
-    index_config = json.loads(
-        (args.item_index / "config.json").read_text(encoding="utf-8")
-    )
+    index_configs = [json.loads((path / "config.json").read_text(encoding="utf-8")) for path in args.item_indexes]
+    index_config = index_configs[0]
     model_config_sha256 = sha256_file(args.model / "config.json")
-    if model_config_sha256 != index_config["model_config_sha256"]:
+    if any(model_config_sha256 != config["model_config_sha256"] for config in index_configs):
         raise RuntimeError(
             "query model differs from the model used to build the item index"
         )
@@ -163,10 +243,15 @@ def main() -> None:
         "model_path": str(args.model),
         "model_config_sha256": model_config_sha256,
         "photo_info_sha256": sha256_file(args.data_root / "photo_info.jsonl"),
-        "label_sha256": sha256_file(args.data_root / "label.json"),
-        "item_index_config": index_config,
+        "label_path": str(args.labels),
+        "label_sha256": sha256_file(args.labels),
+        "photo_ids_path": str(args.photo_ids) if args.photo_ids else None,
+        "photo_ids_sha256": sha256_file(args.photo_ids) if args.photo_ids else None,
+        "item_index_dirs": [str(path) for path in args.item_indexes],
+        "item_index_configs": index_configs,
         "num_queries": args.num_queries,
         "seed": args.seed,
+        "selection_strategy": args.selection_strategy,
         "top_k": args.top_k,
         "query_instruction": QUERY_INSTRUCTION,
         "text_budgets": [list(value) for value in TEXT_BUDGETS],
@@ -193,15 +278,24 @@ def main() -> None:
                 "existing query selection has a different size; use a new output directory"
             )
     else:
-        selected_ids = choose_photo_ids(labels, photos, args.num_queries, args.seed)
+        selected_ids = choose_photo_ids(
+            labels, photos, args.num_queries, args.seed, args.selection_strategy
+        )
         atomic_json_dump(selected_ids, selection_path)
 
     print("loading complete item index...")
-    item_ids, item_matrix, index_config = load_item_index(args.item_index)
+    item_ids, item_matrix, index_configs = load_item_indexes(args.item_indexes)
+    index_config = index_configs[0]
     item_to_position = {item_id: position for position, item_id in enumerate(item_ids)}
     if len(item_to_position) != len(item_ids):
         raise RuntimeError("item index contains duplicate IDs")
     image_size = int(index_config["image_size"])
+    missing_positive_items = sorted(set(label_by_photo.values()) - set(item_to_position))
+    if missing_positive_items:
+        raise RuntimeError(
+            f"{len(missing_positive_items)} positive items are absent from the concatenated indexes: "
+            f"{missing_positive_items[:10]}"
+        )
     item_matrix = item_matrix.to(device="cuda", dtype=torch.float32)
     print("item matrix:", tuple(item_matrix.shape), item_matrix.device)
 

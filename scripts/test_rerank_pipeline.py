@@ -36,7 +36,18 @@ class PipelineTest(unittest.TestCase):
             metrics = json.loads(output.read_text())
             self.assertEqual(metrics['system_top1'], 1/3)
             self.assertEqual(metrics['candidate_rerank_accuracy'], .5)
+            self.assertEqual(metrics['system_mrr'], .5)
+            self.assertAlmostEqual(metrics['system_ndcg'], (1 + 1 / __import__('math').log2(3)) / 3)
             self.assertEqual(metrics['vision_correct_changed_wrong_rate'], 0)
+            labels_jsonl = root / 'labels.jsonl'
+            labels_jsonl.write_text('\n'.join(json.dumps(row) for row in [
+                {'photo_id': '1', 'item_id': 'a'},
+                {'photo_id': '2', 'item_id': 'b'},
+                {'photo_id': '3', 'item_id': 'absent'},
+            ]) + '\n')
+            opts.labels = labels_jsonl
+            evaluate(opts)
+            self.assertEqual(json.loads(output.read_text())['system_mrr'], .5)
             pred = load_rows(predictions)
             pred[0]['ranking'].reverse()  # equal RRF scores: valid order, now harms visual winner
             from rerank_pipeline import write_rows

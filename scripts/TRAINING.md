@@ -372,3 +372,65 @@ bash scripts/run_reranker_listwise_train_8gpu.sh \
   artifacts/train_v0/reranker_sft_smoke_40k \
   artifacts/train_v0/reranker_listwise_train_v1
 ```
+
+## 10. Item-disjoint Checkpoint 选择
+
+正式 500-step 训练已完成。训练侧 500-query 监控集在 step 0/100/200/300/400/500 的 MRR 为 `0.780943/0.786692/0.794919/0.800182/0.807254/0.803947`，NDCG 为 `0.835454/0.839789/0.846066/0.849902/0.855148/0.852769`。checkpoint-400 在该监控集上领先，但该集合不是 item-disjoint，不能据此最终选模。
+
+评估使用 `split_quarantine_duplicates` 的开发视频和开发商品。现有训练商品索引不包含开发正例，因此先为开发商品建立独立索引，再在检索时拼接训练/开发两个互斥索引；候选生成不读取标签补真值。先运行 100-query 全链路 Pilot：
+
+```bash
+conda activate ecom-infer
+cd /code/ecommerce-retrieval
+
+NUM_QUERIES=100 EVAL_GPU=1 \
+bash scripts/run_item_disjoint_retrieval.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/item_disjoint_eval_pilot
+```
+
+合并导出 checkpoint-300/400/500。脚本使用物理 GPU 1 并转换为 UUID；每个目标目录必须同时包含 `config.json` 和 safetensors 才会视为完成：
+
+```bash
+conda activate ecom-train-v2
+
+EXPORT_GPU=1 bash scripts/export_reranker_checkpoints.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_listwise_train_v1 \
+  artifacts/train_v0/reranker_listwise_train_v1_merged
+```
+
+在固定 Pilot 候选上并行比较 Base 与三个 checkpoint。默认使用物理 GPU 1/2/3/4，避开有未知上下文的 GPU 0：
+
+```bash
+RERANK_GPU_LIST=1,2,3,4 \
+bash scripts/run_item_disjoint_rerank_4gpu.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/item_disjoint_eval_pilot/candidates_top10.jsonl \
+  artifacts/train_v0/clean_labels.jsonl \
+  artifacts/train_v0/reranker_listwise_train_v1_merged \
+  artifacts/train_v0/item_disjoint_eval_pilot/rerank
+```
+
+Pilot 的四个模型均通过媒体、分数、完整候选和结果行数 gate 后，使用全新目录固定 2,000 条均匀抽样开发 Query：
+
+```bash
+conda activate ecom-infer
+
+NUM_QUERIES=2000 EVAL_GPU=1 \
+bash scripts/run_item_disjoint_retrieval.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/item_disjoint_eval_v1
+
+conda activate ecom-train-v2
+
+RERANK_GPU_LIST=1,2,3,4 \
+bash scripts/run_item_disjoint_rerank_4gpu.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/item_disjoint_eval_v1/candidates_top10.jsonl \
+  artifacts/train_v0/clean_labels.jsonl \
+  artifacts/train_v0/reranker_listwise_train_v1_merged \
+  artifacts/train_v0/item_disjoint_eval_v1/rerank
+```
+
+最终比较结果为 `rerank/comparison.json`。选择规则以完整系统 Top-1 为主，同时检查 MRR/NDCG、相对 Base 的净增正确数和伤害数。只有 item-disjoint 结果确定唯一 checkpoint 后，才允许对该 checkpoint 运行一次官方 10,000 条冻结 Top-10 评估；禁止用官方验证集反复比较 checkpoint。

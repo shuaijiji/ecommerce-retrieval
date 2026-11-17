@@ -66,5 +66,9 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `run_reranker_listwise_perf_pilot.sh`：对正式 4,500 个训练 query 运行隔离评估和保存耗时的 1/2/4/8 卡 listwise 性能 Pilot，并采集逐卡 GPU 与训练进程 CPU 指标。
 - `summarize_reranker_listwise_perf.py`：汇总四组性能 Pilot 的 query/s、等效 pair/s、资源指标和 8/1 加速比，按 4 倍吞吐及 60% 利用率门槛给出是否通过。
 - `run_reranker_listwise_train_8gpu.sh`：按冻结的正式 v1 协议运行 8 卡 listwise LoRA 训练；使用 global batch 8、学习率 `1e-5` 和 500 step，在 step 0/100/200/300/400/500 评估并每 100 step 保存，同时记录 GPU/CPU 指标并保护已有 GPU 上下文。
+- `run_item_disjoint_retrieval.sh`：为开发商品补建冻结索引，拼接训练/开发两个互斥商品索引，从开发视频中固定均匀抽样并生成纯视觉/多模态 Top-100，最后冻结两路 Top-10 并集。
+- `export_reranker_checkpoints.sh`：按 ms-swift 官方 `swift export --adapters ... --merge_lora true` 接口，将 checkpoint-300/400/500 导出为独立可推理模型。
+- `run_item_disjoint_rerank_4gpu.sh`：在相同 item-disjoint 候选上用 4 张 GPU 并行比较 Base、checkpoint-300/400/500，并先做每模型 100-query gate。
+- `compare_reranker_predictions.py`：汇总固定候选上的 Top-1、MRR、NDCG、候选内准确率及相对 Base 的救回、伤害和净增正确数。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。

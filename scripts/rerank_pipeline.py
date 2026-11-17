@@ -32,6 +32,20 @@ def load_rows(path):
     return rows
 
 
+def load_labels(path):
+    path = Path(path)
+    if path.suffix == '.jsonl':
+        raw = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    else:
+        raw = json.loads(path.read_text())
+    if not isinstance(raw, list):
+        raise TypeError('labels must be a JSON array or JSONL objects')
+    labels = {str(row['photo_id']): str(row['item_id']) for row in raw}
+    if len(labels) != len(raw):
+        raise ValueError('duplicate labels')
+    return raw, labels
+
+
 def write_rows(rows, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -108,16 +122,14 @@ def rrf(args):
 
 def evaluate(args):
     candidates = {r['photo_id']: r for r in load_rows(args.candidates)}
-    raw_labels = json.loads(args.labels.read_text())
-    labels = {str(r['photo_id']): str(r['item_id']) for r in raw_labels}
-    if len(labels) != len(raw_labels):
-        raise ValueError('duplicate labels')
+    raw_labels, labels = load_labels(args.labels)
     predictions = load_rows(args.predictions)
     if len(predictions) != args.expected_count:
         raise ValueError('prediction count differs from expected count')
     if args.expected_count == len(candidates) and {r['photo_id'] for r in predictions} != set(candidates):
         raise ValueError('full evaluation requires exact candidate query set')
     hits = correct = visual_correct = harmed = 0
+    reciprocal_rank_sum = ndcg_sum = 0.0
     times, by_count = [], {}
     for p in predictions:
         pid = p['photo_id']
@@ -130,6 +142,10 @@ def evaluate(args):
         if not all(math.isfinite(s) for s in scores) or any(a < b for a, b in zip(scores, scores[1:])):
             raise ValueError(f'invalid scores: {pid}')
         hit, ok, was_ok = truth in ids, ranking[0]['item_id'] == truth, c['vision_top1'] == truth
+        truth_rank = next((rank for rank, value in enumerate(ranking, 1) if value['item_id'] == truth), None)
+        if truth_rank is not None:
+            reciprocal_rank_sum += 1 / truth_rank
+            ndcg_sum += 1 / math.log2(truth_rank + 1)
         hits += hit
         correct += ok
         visual_correct += was_ok
@@ -148,6 +164,9 @@ def evaluate(args):
     ordered = sorted(times)
     result = {'count': n, 'correct': correct, 'candidate_hits': hits,
               'system_top1': correct / n, 'candidate_rerank_accuracy': correct / hits if hits else None,
+              'system_mrr': reciprocal_rank_sum / n, 'system_ndcg': ndcg_sum / n,
+              'candidate_mrr': reciprocal_rank_sum / hits if hits else None,
+              'candidate_ndcg': ndcg_sum / hits if hits else None,
               'candidate_recall': recall, 'reference_full_candidate_recall': .9039,
               'vision_top1': visual_correct / n, 'vision_correct_count': visual_correct,
               'vision_correct_changed_wrong_count': harmed,
