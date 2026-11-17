@@ -65,5 +65,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `run_reranker_listwise_pilot.sh`：在正式 4,500/500 query 数据上运行单卡 50-step LoRA listwise 目标函数 Pilot，用训练前后 MRR/NDCG 判断是否修复 pointwise 的负类塌缩。
 - `run_reranker_listwise_perf_pilot.sh`：对正式 4,500 个训练 query 运行隔离评估和保存耗时的 1/2/4/8 卡 listwise 性能 Pilot，并采集逐卡 GPU 与训练进程 CPU 指标。
 - `summarize_reranker_listwise_perf.py`：汇总四组性能 Pilot 的 query/s、等效 pair/s、资源指标和 8/1 加速比，按 4 倍吞吐及 60% 利用率门槛给出是否通过。
+- `run_reranker_listwise_train_8gpu.sh`：按冻结的正式 v1 协议运行 8 卡 listwise LoRA 训练；使用 global batch 8、学习率 `1e-5` 和 500 step，在 step 0/100/200/300/400/500 评估并每 100 step 保存，同时记录 GPU/CPU 指标并保护已有 GPU 上下文。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。

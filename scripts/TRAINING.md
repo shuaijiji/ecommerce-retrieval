@@ -337,3 +337,38 @@ python scripts/summarize_reranker_listwise_perf.py \
 每卡 batch size 1 的 1/2/4/8 卡吞吐为 1.413/2.494/4.629/8.741 query/s，8 卡相对单卡为 6.186×；吞吐扩展门槛通过。严格自动 gate 因逐卡利用率中位数未达到 60% 而仍为 false，且早期单卡 batch 扫描存在 CUDA ordinal 与物理索引监控不一致，不能使用对应资源行。batch 1/2/4 的相对吞吐约为 1.653/1.946/1.991 query/s，batch 4 已明显进入收益平台。
 
 当前停止追加性能 Pilot。后续若启动正式 listwise 训练，优先使用已完成多卡扩展验证的每卡 batch 1，不根据无效的单卡物理资源行改变配置。拟定正式入口为 8 卡、global batch 8、学习率 `1e-5`、最多 500 step，step 0/100/200/300/400/500 评估并每 100 step 保存；本段仅记录拟采用方案，不表示任务已启动或性能总 gate 已无条件通过。
+
+## 9. 正式 8 卡 Listwise 训练
+
+正式 v1 入口冻结为 8 卡、每卡 batch size 1、global batch 8、学习率 `1e-5` 和 500 step。启动前脚本会回读 40k manifest、把物理 GPU 索引转换为 UUID，并检查每张目标卡已有显存占用。它不会终止或覆盖未知 GPU 进程。
+
+先前 GPU 0 曾存在约 15.4 GiB 的容器外/不可见计算上下文，因此首次运行预检查预计可能主动停止。先通过平台确认这些上下文的所有者及共享是否安全；只有明确允许共享时才设置 `ALLOW_BUSY_GPUS=1`，不能仅为了绕过检查而设置。
+
+```bash
+conda activate ecom-train-v2
+cd /code/ecommerce-retrieval
+
+bash scripts/run_reranker_listwise_train_8gpu.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_listwise_train_v1
+```
+
+正常启动后查看训练和资源日志：
+
+```bash
+tail -f artifacts/train_v0/reranker_listwise_train_v1/train.log
+tail -f artifacts/train_v0/reranker_listwise_train_v1/gpu_metrics.csv
+```
+
+脚本在 step 0/100/200/300/400/500 评估，在 step 100/200/300/400/500 保存，并保留这些 checkpoint。500 个 eval query 仍只是训练侧管线监控集；不得只凭该集合选择最终 checkpoint 或宣称泛化提升。训练完成后必须另行在 item-disjoint 内部开发集和冻结 Top-10 协议上评估各 checkpoint。
+
+若训练中断，指定原输出目录和实际 checkpoint 路径恢复；checkpoint 通常位于 `model/v0-*/checkpoint-N`：
+
+```bash
+RESUME_FROM_CHECKPOINT=artifacts/train_v0/reranker_listwise_train_v1/model/v0-时间戳/checkpoint-200 \
+bash scripts/run_reranker_listwise_train_8gpu.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_listwise_train_v1
+```
