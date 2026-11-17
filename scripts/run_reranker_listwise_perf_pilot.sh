@@ -65,6 +65,17 @@ else
   GPU_LIST=$(python -c 'import sys; print(",".join(map(str, range(int(sys.argv[1])))))' "$NUM_GPUS")
 fi
 
+CUDA_VISIBLE_LIST=""
+for gpu_index in ${GPU_LIST//,/ }; do
+  gpu_uuid=$(nvidia-smi --id="$gpu_index" --query-gpu=uuid --format=csv,noheader,nounits | tr -d ' ')
+  test -n "$gpu_uuid" || { echo "failed to resolve UUID for GPU index $gpu_index" >&2; exit 2; }
+  if test -n "$CUDA_VISIBLE_LIST"; then
+    CUDA_VISIBLE_LIST="$CUDA_VISIBLE_LIST,$gpu_uuid"
+  else
+    CUDA_VISIBLE_LIST=$gpu_uuid
+  fi
+done
+
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export MAX_POSITIVE_SAMPLES=1
 export MAX_NEGATIVE_SAMPLES=7
@@ -84,6 +95,7 @@ export MKL_NUM_THREADS=${MKL_NUM_THREADS:-8}
   echo "output_dir=$OUTPUT_DIR"
   echo "num_gpus=$NUM_GPUS"
   echo "gpu_list=$GPU_LIST"
+  echo "cuda_visible_devices=$CUDA_VISIBLE_LIST"
   echo "max_steps=$MAX_STEPS"
   echo "per_device_train_batch_size=$PER_DEVICE_TRAIN_BATCH_SIZE"
   echo "gradient_accumulation_steps=1"
@@ -130,7 +142,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 echo "starting ${NUM_GPUS}-GPU listwise performance pilot; log: $TRAIN_LOG"
-CUDA_VISIBLE_DEVICES=$GPU_LIST \
+CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_LIST \
 NPROC_PER_NODE=$NUM_GPUS \
 MASTER_PORT=$MASTER_PORT \
 swift sft \
@@ -195,6 +207,22 @@ test "$(wc -l < "$GPU_LOG")" -gt 1 || {
 }
 test "$(wc -l < "$CPU_LOG")" -gt 1 || {
   echo "CPU monitoring produced no samples: $CPU_LOG" >&2
+  exit 3
+}
+python -c '
+import csv, sys
+expected = set(sys.argv[2].split(","))
+stats = {index: {"memory": 0.0, "util": 0.0} for index in expected}
+with open(sys.argv[1], newline="") as handle:
+    for row in csv.DictReader(handle):
+        index = row["index"].strip()
+        if index in stats:
+            stats[index]["memory"] = max(stats[index]["memory"], float(row["memory_used_mib"]))
+            stats[index]["util"] = max(stats[index]["util"], float(row["utilization_gpu_percent"]))
+inactive = {index: values for index, values in stats.items() if values["memory"] < 1024 or values["util"] <= 0}
+assert not inactive, f"selected GPUs showed no training activity: {inactive}"
+' "$GPU_LOG" "$GPU_LIST" || {
+  echo "GPU activity validation failed; check CUDA UUID mapping and $GPU_LOG" >&2
   exit 3
 }
 
