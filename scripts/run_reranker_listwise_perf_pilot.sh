@@ -10,6 +10,10 @@ MAX_STEPS=${MAX_STEPS:-200}
 LEARNING_RATE=${LEARNING_RATE:-1e-5}
 MONITOR_INTERVAL=${MONITOR_INTERVAL:-1}
 MASTER_PORT=${MASTER_PORT:-29500}
+PER_DEVICE_TRAIN_BATCH_SIZE=${PER_DEVICE_TRAIN_BATCH_SIZE:-1}
+DATALOADER_NUM_WORKERS=${DATALOADER_NUM_WORKERS:-4}
+DATASET_NUM_PROC=${DATASET_NUM_PROC:-4}
+PILOT_GPU_LIST=${PILOT_GPU_LIST:-}
 
 TRAIN_DATA=$DATA_DIR/swift_train.jsonl
 MANIFEST=$DATA_DIR/manifest.json
@@ -25,6 +29,9 @@ case "$NUM_GPUS" in
 esac
 
 test "$MAX_STEPS" -ge 100 || { echo "MAX_STEPS must be at least 100" >&2; exit 2; }
+test "$PER_DEVICE_TRAIN_BATCH_SIZE" -ge 1 || { echo "PER_DEVICE_TRAIN_BATCH_SIZE must be positive" >&2; exit 2; }
+test "$DATALOADER_NUM_WORKERS" -ge 0 || { echo "DATALOADER_NUM_WORKERS must be non-negative" >&2; exit 2; }
+test "$DATASET_NUM_PROC" -ge 1 || { echo "DATASET_NUM_PROC must be positive" >&2; exit 2; }
 test -d "$MODEL" || { echo "missing model directory: $MODEL" >&2; exit 2; }
 test -f "$TRAIN_DATA" || { echo "missing training data: $TRAIN_DATA" >&2; exit 2; }
 test -f "$MANIFEST" || { echo "missing manifest: $MANIFEST" >&2; exit 2; }
@@ -45,7 +52,18 @@ if test -e "$OUTPUT_DIR"; then
 fi
 mkdir -p "$OUTPUT_DIR"
 
-GPU_LIST=$(python -c 'import sys; print(",".join(map(str, range(int(sys.argv[1])))))' "$NUM_GPUS")
+if test -n "$PILOT_GPU_LIST"; then
+  GPU_LIST=$(python -c 'import sys; xs=sys.argv[1].split(","); n=int(sys.argv[2]); assert len(xs)==n and len(set(xs))==n and all(x.isdigit() for x in xs); print(",".join(xs))' "$PILOT_GPU_LIST" "$NUM_GPUS") || {
+    echo "PILOT_GPU_LIST must contain NUM_GPUS unique numeric indexes: $PILOT_GPU_LIST" >&2
+    exit 2
+  }
+  python -c 'import sys; xs=map(int,sys.argv[1].split(",")); available=int(sys.argv[2]); assert all(0 <= x < available for x in xs)' "$GPU_LIST" "$AVAILABLE_GPUS" || {
+    echo "PILOT_GPU_LIST contains an unavailable GPU index: $GPU_LIST" >&2
+    exit 2
+  }
+else
+  GPU_LIST=$(python -c 'import sys; print(",".join(map(str, range(int(sys.argv[1])))))' "$NUM_GPUS")
+fi
 
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 export MAX_POSITIVE_SAMPLES=1
@@ -67,8 +85,10 @@ export MKL_NUM_THREADS=${MKL_NUM_THREADS:-8}
   echo "num_gpus=$NUM_GPUS"
   echo "gpu_list=$GPU_LIST"
   echo "max_steps=$MAX_STEPS"
-  echo "per_device_train_batch_size=1"
+  echo "per_device_train_batch_size=$PER_DEVICE_TRAIN_BATCH_SIZE"
   echo "gradient_accumulation_steps=1"
+  echo "dataloader_num_workers=$DATALOADER_NUM_WORKERS"
+  echo "dataset_num_proc=$DATASET_NUM_PROC"
   echo "effective_pairs_per_query=8"
   echo "learning_rate=$LEARNING_RATE"
   echo "master_port=$MASTER_PORT"
@@ -135,11 +155,11 @@ swift sft \
   --logging_steps 5 \
   --max_steps "$MAX_STEPS" \
   --max_length 4096 \
-  --per_device_train_batch_size 1 \
+  --per_device_train_batch_size "$PER_DEVICE_TRAIN_BATCH_SIZE" \
   --gradient_accumulation_steps 1 \
   --gradient_checkpointing true \
-  --dataloader_num_workers 4 \
-  --dataset_num_proc 4 \
+  --dataloader_num_workers "$DATALOADER_NUM_WORKERS" \
+  --dataset_num_proc "$DATASET_NUM_PROC" \
   --warmup_ratio 0.05 \
   --report_to none \
   > "$TRAIN_LOG" 2>&1 &

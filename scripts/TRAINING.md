@@ -327,3 +327,5 @@ python scripts/summarize_reranker_listwise_perf.py \
 ```
 
 汇总器以 `N × max_steps × per-device batch / train_runtime` 计算 query/s，以 query/s × 8 计算等效 pair/s；资源监控只截取进程结束前与 `train_runtime` 等长的纯训练窗口，排除模型加载和数据初始化，再报告逐卡 GPU 利用率中位数、峰值显存、功耗及训练进程 CPU/RSS。正式训练门槛为：8 卡 query/s 至少达到单卡 4 倍，且 8 张卡的利用率中位数均不低于 60%。任一条件不满足时先分析 DDP 通信、CPU 图片处理、数据读取和 worker 争用，不启动正式训练。
+
+若 batch size 1 的吞吐扩展通过但 GPU 利用率不达标，先在无外部占用的单张 GPU 上扫描每卡 batch size 1/2/4。脚本支持通过 `PILOT_GPU_LIST` 指定物理卡，通过 `PER_DEVICE_TRAIN_BATCH_SIZE`、`DATALOADER_NUM_WORKERS` 和 `DATASET_NUM_PROC` 覆盖默认值。batch 扫描必须固定 GPU、步数、数据和其他参数，按 query/s、利用率及峰值显存共同选择配置；出现 OOM 时保留失败目录，不覆盖或删除已有产物。
