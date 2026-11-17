@@ -331,3 +331,9 @@ python scripts/summarize_reranker_listwise_perf.py \
 若 batch size 1 的吞吐扩展通过但 GPU 利用率不达标，先在无外部占用的单张 GPU 上扫描每卡 batch size 1/2/4。脚本支持通过 `PILOT_GPU_LIST` 指定物理卡，通过 `PER_DEVICE_TRAIN_BATCH_SIZE`、`DATALOADER_NUM_WORKERS` 和 `DATASET_NUM_PROC` 覆盖默认值。batch 扫描必须固定 GPU、步数、数据和其他参数，按 query/s、利用率及峰值显存共同选择配置；出现 OOM 时保留失败目录，不覆盖或删除已有产物。
 
 `PILOT_GPU_LIST` 使用 `nvidia-smi` 展示的物理索引。脚本会把索引解析为 GPU UUID 后设置 `CUDA_VISIBLE_DEVICES`，避免 CUDA 枚举顺序与 `nvidia-smi` 索引不一致；运行结束还会检查每张选中卡是否实际出现超过 1 GiB 显存和非零计算利用率，未命中目标 GPU 时不得发布为成功结果。
+
+### 2026-11-17 实测结论
+
+每卡 batch size 1 的 1/2/4/8 卡吞吐为 1.413/2.494/4.629/8.741 query/s，8 卡相对单卡为 6.186×；吞吐扩展门槛通过。严格自动 gate 因逐卡利用率中位数未达到 60% 而仍为 false，且早期单卡 batch 扫描存在 CUDA ordinal 与物理索引监控不一致，不能使用对应资源行。batch 1/2/4 的相对吞吐约为 1.653/1.946/1.991 query/s，batch 4 已明显进入收益平台。
+
+当前停止追加性能 Pilot。后续若启动正式 listwise 训练，优先使用已完成多卡扩展验证的每卡 batch 1，不根据无效的单卡物理资源行改变配置。拟定正式入口为 8 卡、global batch 8、学习率 `1e-5`、最多 500 step，step 0/100/200/300/400/500 评估并每 100 step 保存；本段仅记录拟采用方案，不表示任务已启动或性能总 gate 已无条件通过。
