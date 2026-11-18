@@ -455,3 +455,23 @@ bash scripts/run_item_disjoint_rerank_4gpu.sh \
 checkpoint-500 是后续 RL 的固定 SFT 起点。先审计 Qwen3-VL-Reranker-2B 的 yes/no 打分头、ms-swift rollout 接口和 DIVA-GRPO 公开 Qwen2.5-VL 生成式路径的差异，在此之前不直接运行公开 8 卡脚本。
 
 普通 GRPO 的首个实现门槛为：只使用训练侧 hard negatives；真值 item_id 不变；输出必须严格可解析；正确性是主奖励，格式奖励不得掩盖选择错误；100-query Pilot 必须证明奖励有方差、advantage 非退化且无标签泄漏。普通 GRPO 通过固定 item-disjoint 开发门槛后，再实现 DIVA-GRPO 的难度变体、local/global advantage、难度加权和奖励范围缩放。
+
+代码审计确认，当前 `generative_reranker` 在 ms-swift/vLLM 中映射为 `score/pooling` 任务，而标准 GRPO 需要 `generate` rollout 及 token log-prob，因此 checkpoint-500 不能直接套用标准 token-level GRPO/DIVA-GRPO 启动脚本。详细映射见 `GRPO_ADAPTATION.md`。
+
+首先不训练，在已保存的 item-disjoint checkpoint-500 分数上审计 categorical score-policy 的奖励方差：
+
+```bash
+conda activate ecom-infer
+cd /code/ecommerce-retrieval
+
+PYTHONPATH=scripts python scripts/audit_reranker_grpo_rollouts.py \
+  --candidates artifacts/train_v0/item_disjoint_eval_v1/candidates_top10.jsonl \
+  --predictions artifacts/train_v0/item_disjoint_eval_v1/rerank/checkpoint_500/predictions_2000.jsonl \
+  --labels artifacts/train_v0/clean_labels.jsonl \
+  --group-sizes 4,8,16 \
+  --temperatures 0.5,1.0,2.0 \
+  --replicates 64 \
+  --output artifacts/train_v0/grpo_rollout_audit_checkpoint500.json
+```
+
+该命令不加载 GPU 模型、不更新权重，也不读取官方 10k。只有当预设温度和 group size 在候选命中 query 上有足够的 `expected_active_group_rate`，才继续实现 score-policy GRPO 最小训练 Pilot；同时必须保留等 step 的 listwise 继训对照。

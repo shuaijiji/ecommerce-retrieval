@@ -15,6 +15,7 @@
 - [Qwen3-VL-Reranker 单卡训练链路通过](进展更新-2026-11-16.md)
 - [Listwise 排序门槛与多卡吞吐测试](进展更新-2026-11-17.md)
 - [Listwise 官方 10k 最终结果与 GRPO 下一步](进展更新-2026-11-18.md)
+- [Qwen3-VL-Reranker 的 GRPO 适配审计](GRPO_ADAPTATION.md)
 - [已验证脚本](scripts/README.md)
 
 远端为 8×H100 80GB。这里是本地记录目录，不是远端训练目录，文件尚未同步到远端。
