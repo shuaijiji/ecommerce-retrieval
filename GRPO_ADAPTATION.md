@@ -68,7 +68,8 @@ DIVA 额外为原问题构造难度变体：同一变体的 rollout 共享 local
 
 奖励方差审计先在训练侧监控或 item-disjoint 开发预测上运行，不使用官方 10k 调参。路径 C 的最小训练 Pilot 只有同时满足以下条件才启动：
 
-- 候选命中 query 上，预设温度与 group size 的期望 active-group rate 足够高，且不依赖官方集选参；
+- 主配置预先固定为 `temperature=1.0` 和 `group_size=8`；候选命中 query 上 `expected_active_group_rate >= 0.50`，且模拟值与解析值的绝对差不超过 0.03；
+- `temperature=0.5/2.0` 只用于诊断分数过尖或过平，不得在主配置失败后事后改用它们启动训练；
 - 奖励为严格的 item_id 命中，格式或解释不产生额外奖励；
 - 保留 checkpoint-500 不变，新训练使用独立输出目录；
 - 同时运行等样本/等 step 的 listwise 继训对照；

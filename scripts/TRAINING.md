@@ -474,4 +474,4 @@ PYTHONPATH=scripts python scripts/audit_reranker_grpo_rollouts.py \
   --output artifacts/train_v0/grpo_rollout_audit_checkpoint500.json
 ```
 
-该命令不加载 GPU 模型、不更新权重，也不读取官方 10k。只有当预设温度和 group size 在候选命中 query 上有足够的 `expected_active_group_rate`，才继续实现 score-policy GRPO 最小训练 Pilot；同时必须保留等 step 的 listwise 继训对照。
+该命令不加载 GPU 模型、不更新权重，也不读取官方 10k。主配置预先固定为 `temperature=1.0, group_size=8`；只有当候选命中 query 上 `expected_active_group_rate >= 0.50`，且模拟与解析 active rate 相差不超过 0.03，才继续实现 score-policy GRPO 最小训练 Pilot。`temperature=0.5/2.0` 仅作诊断，不用于事后更换主配置。训练 Pilot 必须同时保留等 step 的 listwise 继训对照。
