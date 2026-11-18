@@ -475,3 +475,18 @@ PYTHONPATH=scripts python scripts/audit_reranker_grpo_rollouts.py \
 ```
 
 该命令不加载 GPU 模型、不更新权重，也不读取官方 10k。主配置预先固定为 `temperature=1.0, group_size=8`；只有当候选命中 query 上 `expected_active_group_rate >= 0.50`，且模拟与解析 active rate 相差不超过 0.03，才继续实现 score-policy GRPO 最小训练 Pilot。`temperature=0.5/2.0` 仅作诊断，不用于事后更换主配置。训练 Pilot 必须同时保留等 step 的 listwise 继训对照。
+
+审计已通过：主配置的解析/模拟 active-group rate 为 `0.636479/0.638287`，差值 `0.001809`，平均绝对 advantage 为 `0.503746`。运行最小配对训练 Pilot：
+
+```bash
+conda activate ecom-train-v2
+cd /code/ecommerce-retrieval
+
+POLICY_GPU=1 CONTROL_GPU=2 \
+bash scripts/run_reranker_score_policy_grpo_pilot.sh \
+  /code/ecommerce-retrieval \
+  artifacts/train_v0/reranker_sft_smoke_40k \
+  artifacts/train_v0/reranker_score_policy_grpo_pilot_v1
+```
+
+入口从 `reranker_listwise_train_v1_merged/checkpoint-500-merged` 出发，两个 arm 共用固定 100-query JSONL、LoRA rank 8、学习率 `1e-6` 和 100 step。默认并行占用两张空闲卡，已有显存超过 1 GiB 时拒绝启动。score-policy 的实际 rollout 汇总保存在 `score_policy/rollout_summary.json`；active-group rate 低于 0.50 或 loss 出现非有限值时脚本失败。训练成功只通过功能门槛，下一步需合并两个 adapter，只在固定 item-disjoint 开发集与原 checkpoint-500 做配对对比，不再读取官方 10k。

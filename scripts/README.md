@@ -70,6 +70,10 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `export_reranker_checkpoints.sh`：按 ms-swift 官方 `swift export --adapters ... --merge_lora true` 接口，将 checkpoint-300/400/500 导出为独立可推理模型。
 - `run_item_disjoint_rerank_4gpu.sh`：在相同 item-disjoint 候选上用 4 张 GPU 并行比较 Base、checkpoint-300/400/500，并先做每模型 100-query gate。
 - `audit_reranker_grpo_rollouts.py`：不训练模型；把已保存的 reranker sigmoid 分数还原为 logit，在固定候选内模拟 categorical score-policy GRPO，报告不同温度/group size 下的奖励零方差率和有效 advantage 比例。
+- `prepare_score_policy_grpo_pilot.py`：从训练侧 1 正 + 7 负 query group 中确定性选取 100 组，产生两个对照 arm 共用的 JSONL 和 hash manifest。
+- `reranker_score_policy_grpo_plugin.py`：通过 ms-swift external plugin 注册 categorical score-policy/contextual-bandit GRPO loss，并按 batch 记录奖励与 advantage 统计。
+- `run_reranker_score_policy_grpo_pilot.sh`：从合并后的 checkpoint-500 并行运行固定 100 query/100 step 的 score-policy 与等 step listwise 单卡对照。
+- `summarize_score_policy_grpo_stats.py`：汇总实际训练 rollout 的 active-group rate、奖励、advantage、策略熵和有限 loss gate。
 - `compare_reranker_predictions.py`：汇总固定候选上的 Top-1、MRR、NDCG、候选内准确率及相对 Base 的救回、伤害和净增正确数。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。

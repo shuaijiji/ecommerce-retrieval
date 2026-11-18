@@ -64,6 +64,32 @@ DIVA 额外为原问题构造难度变体：同一变体的 rollout 共享 local
 
 如果大部分组的奖励都全 0 或全 1，普通 GRPO 没有可用组内信号，应停止路径 C；如果仅通过人为提高温度才获得方差，需要额外证明该探索不会损害当前已良好校准的排序。
 
+## 奖励方差审计结果
+
+2026-11-18 在固定 2,000-query item-disjoint 开发预测上完成审计。主配置 `temperature=1.0, group_size=8` 的结果为：
+
+- 1,270 个候选命中 query 的正例平均策略概率为 `0.564079`；
+- 预期有效组比例为 `0.636479`，超过预注册的 `0.50` 门槛；
+- 模拟有效组比例为 `0.638287`，与解析值仅差 `0.001809`，低于 `0.03` 门槛；
+- 平均绝对 advantage 为 `0.503746`，组内学习信号非退化。
+
+因此路径 C 通过了“是否值得实现最小训练 Pilot”的准入门槛。这不是精度收益结论：36.35% 的候选命中组仍为零方差，而候选未命中的 730 个 query 必然没有正奖励。真实训练只使用每组必含真值的训练侧 1 正 + 7 负 hard-negative 数据，不使用这 2,000 条开发候选训练。
+
+## 最小训练 Pilot 实现
+
+`scripts/reranker_score_policy_grpo_plugin.py` 通过 ms-swift `--external_plugins` 注册 `score_policy_grpo` loss。对每个正例在首位的 8 候选组，它对 logits 做温度 1.0 的 softmax，独立采样 8 个候选动作，以是否采到第 0 位真值作为二值奖励，然后用组内标准化 advantage 优化动作 log-prob。零方差组贡献 0 梯度。
+
+这是每批次重新 rollout 的单次 on-policy 更新；在 importance ratio 等于 1 的当前参数点，局部梯度与未截断 GRPO ratio objective 一致。Pilot 不重用 rollout、不引入参考模型 KL，因此继续准确称为 categorical score-policy/contextual-bandit GRPO，不称为 token-level GRPO。
+
+配对入口 `scripts/run_reranker_score_policy_grpo_pilot.sh` 从已合并的 checkpoint-500 同时启动两个单卡 arm：
+
+- 固定的 100 个训练侧 query，两个 arm 共用同一 JSONL 和 hash manifest；
+- score-policy GRPO 与继续 listwise 同为 100 step、学习率 `1e-6`、LoRA rank 8；
+- 两者写入独立目录，不修改 checkpoint-500；
+- score-policy arm 保存每批 rollout 统计，实测 active-group rate 低于 0.50 或 loss 非有限时入口直接失败。
+
+此 Pilot 的功能门槛是可训练、有效组比例不低于 0.50，且固定 item-disjoint 开发集不出现灾难性回退。是否有算法收益必须再比较 checkpoint-500、等 step listwise 和 score-policy 三者的配对预测；不能只因为训练 loss 下降就进入大规模实验。
+
 ## Pilot 通过门槛
 
 奖励方差审计先在训练侧监控或 item-disjoint 开发预测上运行，不使用官方 10k 调参。路径 C 的最小训练 Pilot 只有同时满足以下条件才启动：

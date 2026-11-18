@@ -4,7 +4,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-18：正式 8 卡 listwise LoRA 已完成 500 step，并在固定 2,000-query item-disjoint 开发集上唯一选定 checkpoint-500。随后按预注册协议只对该 checkpoint 运行一次官方冻结 Top-10 10,000 条评估：完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**，净增 136 条（救回 282，伤害 146），配对精确检验 `p≈4.7×10⁻¹¹`。候选内准确率从 87.80% 提升到 89.30%，平均延迟从 1.166 增至 1.218 秒/视频（+4.52%）。当前 SFT 阶段已完成，下一阶段是封存官方验证集结果，使用训练侧 hard negatives 审计并实现普通 GRPO Pilot，再决定是否进入 DIVA-GRPO。
+截至 2026-11-18：正式 8 卡 listwise LoRA 已完成 500 step，并在固定 2,000-query item-disjoint 开发集上唯一选定 checkpoint-500。随后按预注册协议只对该 checkpoint 运行一次官方冻结 Top-10 10,000 条评估：完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**，净增 136 条（救回 282，伤害 146），配对精确检验 `p≈4.7×10⁻¹¹`。候选内准确率从 87.80% 提升到 89.30%，平均延迟从 1.166 增至 1.218 秒/视频（+4.52%）。官方集已封存。categorical score-policy GRPO 奖励方差审计的主配置 active-group rate 为 63.65%，已通过 50% 预注册门槛；当前进入固定 100 query/100 step 的 score-policy 与等 step listwise 配对 Pilot，暂不执行 DIVA-GRPO。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)
