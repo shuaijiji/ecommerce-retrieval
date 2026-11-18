@@ -434,3 +434,24 @@ bash scripts/run_item_disjoint_rerank_4gpu.sh \
 ```
 
 最终比较结果为 `rerank/comparison.json`。选择规则以完整系统 Top-1 为主，同时检查 MRR/NDCG、相对 Base 的净增正确数和伤害数。只有 item-disjoint 结果确定唯一 checkpoint 后，才允许对该 checkpoint 运行一次官方 10,000 条冻结 Top-10 评估；禁止用官方验证集反复比较 checkpoint。
+
+## 11. Listwise 最终结果
+
+100-query Pilot 通过后，2,000-query item-disjoint 开发评估的 Base/checkpoint-300/400/500 Top-1 分别为 `0.4585/0.4655/0.4650/0.4660`。checkpoint-500 在预先规定的主指标上唯一领先，因此被固定为唯一官方最终评估对象。
+
+官方冻结 Top-10 10,000 条结果：
+
+- Base/checkpoint-500 完整系统 Top-1 为 `0.7936/0.8072`，绝对提升 `0.0136`；
+- 候选内准确率为 `0.877973/0.893019`；
+- MRR 为 `0.837659/0.846199`，NDCG 为 `0.854215/0.860652`；
+- 配对救回/伤害/净增为 `282/146/+136`，双侧精确检验 `p≈4.69×10⁻¹¹`；
+- 平均延迟为 `1.1658/1.2185` 秒/视频，checkpoint-500 增加约 4.52%；
+- 候选 Recall 固定为 `0.9039`，剩余错误为 961 条候选未命中和 967 条候选内排序错误。
+
+最终预测文件 SHA-256 为 `7708702d8a69427ce7c74fabda4ad03a380f0ff9a739e006504348e41c511ddf`，远程结果目录为 `artifacts/train_v0/reranker_listwise_official_10k_checkpoint500`。官方验证集从此封存，不得用于后续 GRPO 选参或 checkpoint 筛选。
+
+## 12. GRPO 下一步
+
+checkpoint-500 是后续 RL 的固定 SFT 起点。先审计 Qwen3-VL-Reranker-2B 的 yes/no 打分头、ms-swift rollout 接口和 DIVA-GRPO 公开 Qwen2.5-VL 生成式路径的差异，在此之前不直接运行公开 8 卡脚本。
+
+普通 GRPO 的首个实现门槛为：只使用训练侧 hard negatives；真值 item_id 不变；输出必须严格可解析；正确性是主奖励，格式奖励不得掩盖选择错误；100-query Pilot 必须证明奖励有方差、advantage 非退化且无标签泄漏。普通 GRPO 通过固定 item-disjoint 开发门槛后，再实现 DIVA-GRPO 的难度变体、local/global advantage、难度加权和奖励范围缩放。
