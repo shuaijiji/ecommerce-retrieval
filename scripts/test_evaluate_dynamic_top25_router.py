@@ -1,7 +1,13 @@
 """Synthetic checks for the leakage-controlled dynamic Top-25 router."""
 import unittest
 
-from evaluate_dynamic_top25_router import evaluate, selected_ids, split_ids
+from evaluate_dynamic_top25_router import (
+    evaluate,
+    fit_top1_score_threshold,
+    selected_ids,
+    split_ids,
+    threshold_selected_ids,
+)
 
 
 class DynamicTop25RouterTest(unittest.TestCase):
@@ -43,10 +49,21 @@ class DynamicTop25RouterTest(unittest.TestCase):
             result["budget_curve"][0]["test"]["correct"],
             result["test_same_run_top10"]["correct"],
         )
+        self.assertEqual(result["deployment_candidate"]["policy"], "low_top1_score")
         self.assertEqual(
             result["budget_curve"][1]["test"]["correct"],
             result["test_full_top25"]["correct"],
         )
+
+    def test_fixed_threshold_uses_stable_hash_for_ties(self):
+        ids = list(self.examples)
+        for example in self.examples.values():
+            example["top1_score"] = .5
+        threshold = fit_top1_score_threshold(ids, self.examples, .25, tie_seed=11)
+        first = threshold_selected_ids(ids, self.examples, threshold)
+        second = threshold_selected_ids(list(reversed(ids)), self.examples, threshold)
+        self.assertEqual(first, second)
+        self.assertEqual(threshold["tie_probability"], .25)
 
 
 if __name__ == "__main__":

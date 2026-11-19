@@ -137,6 +137,51 @@ def selected_ids(
     return set(ordered[:count])
 
 
+def _hash_fraction(photo_id: str, seed: int) -> float:
+    value = int(hashlib.sha256(f"{seed}:router-tie:{photo_id}".encode()).hexdigest(), 16)
+    return value / (1 << 256)
+
+
+def fit_top1_score_threshold(
+    ids: list[str], examples: dict[str, dict], budget: float, tie_seed: int
+) -> dict:
+    """Fit a deployable scalar cutoff using calibration features only."""
+    if not 0 < budget <= 1:
+        raise ValueError("deployment budget must be in (0, 1]")
+    target = min(len(ids), max(1, round(len(ids) * budget)))
+    ordered_scores = sorted(float(examples[photo_id]["top1_score"]) for photo_id in ids)
+    cutoff = ordered_scores[target - 1]
+    below_count = sum(examples[photo_id]["top1_score"] < cutoff for photo_id in ids)
+    equal_count = sum(examples[photo_id]["top1_score"] == cutoff for photo_id in ids)
+    tie_probability = (target - below_count) / equal_count
+    return {
+        "feature": "same-run restricted Top-10 top1 score",
+        "operator": "expand if score < cutoff; at equality use stable hash sampling",
+        "cutoff": cutoff,
+        "tie_probability": tie_probability,
+        "tie_seed": tie_seed,
+        "calibration_target_count": target,
+        "calibration_below_cutoff_count": below_count,
+        "calibration_equal_cutoff_count": equal_count,
+    }
+
+
+def threshold_selected_ids(
+    ids: list[str], examples: dict[str, dict], threshold: dict
+) -> set[str]:
+    cutoff = threshold["cutoff"]
+    tie_probability = threshold["tie_probability"]
+    tie_seed = threshold["tie_seed"]
+    selected = set()
+    for photo_id in ids:
+        score = examples[photo_id]["top1_score"]
+        if score < cutoff or (
+            score == cutoff and _hash_fraction(photo_id, tie_seed) < tie_probability
+        ):
+            selected.add(photo_id)
+    return selected
+
+
 def summarize_arm(
     ids: list[str], examples: dict[str, dict], expanded: set[str]
 ) -> dict:
@@ -174,7 +219,10 @@ def summarize_arm(
 
 
 def evaluate(
-    examples: dict[str, dict], seed: int, budgets: tuple[float, ...]
+    examples: dict[str, dict],
+    seed: int,
+    budgets: tuple[float, ...],
+    deployment_budget: float = 0.25,
 ) -> dict:
     calibration_ids, test_ids = split_ids(examples, seed)
     curves = []
@@ -204,6 +252,11 @@ def evaluate(
         )
     }
     oracle["system_top1"] = oracle["correct"] / len(test_ids)
+    threshold = fit_top1_score_threshold(
+        calibration_ids, examples, deployment_budget, tie_seed=seed
+    )
+    calibration_threshold_ids = threshold_selected_ids(calibration_ids, examples, threshold)
+    test_threshold_ids = threshold_selected_ids(test_ids, examples, threshold)
     return {
         "objective": "budgeted_dynamic_top25_router_offline_evaluation",
         "split": {
@@ -227,6 +280,18 @@ def evaluate(
         "test_full_top25": full_expansion,
         "test_oracle_top10_or_top25": oracle,
         "budget_curve": curves,
+        "deployment_candidate": {
+            "policy": "low_top1_score",
+            "requested_budget": deployment_budget,
+            "threshold_fitted_on": "calibration only",
+            "threshold": threshold,
+            "calibration_fixed_threshold": summarize_arm(
+                calibration_ids, examples, calibration_threshold_ids
+            ),
+            "test_fixed_threshold": summarize_arm(
+                test_ids, examples, test_threshold_ids
+            ),
+        },
     }
 
 
@@ -237,6 +302,12 @@ def main() -> None:
     parser.add_argument("--top25-predictions", type=Path, required=True)
     parser.add_argument("--labels", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--deployment-budget",
+        type=float,
+        default=0.25,
+        help="calibration-only budget used to export a fixed low-top1 threshold",
+    )
     parser.add_argument("--seed", type=int, default=20261119)
     parser.add_argument("--budget", type=float, action="append")
     args = parser.parse_args()
@@ -247,7 +318,7 @@ def main() -> None:
     _, labels = load_labels(args.labels)
     examples = prepare_examples(top10, top25, predictions, labels)
     budgets = tuple(args.budget) if args.budget else DEFAULT_BUDGETS
-    result = evaluate(examples, args.seed, budgets)
+    result = evaluate(examples, args.seed, budgets, args.deployment_budget)
     result["inputs"] = {
         "top10_candidates": str(args.top10_candidates),
         "top10_candidates_sha256": digest(args.top10_candidates),
