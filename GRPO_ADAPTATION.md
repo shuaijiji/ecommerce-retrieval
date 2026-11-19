@@ -90,6 +90,18 @@ DIVA 额外为原问题构造难度变体：同一变体的 rollout 共享 local
 
 此 Pilot 的功能门槛是可训练、有效组比例不低于 0.50，且固定 item-disjoint 开发集不出现灾难性回退。是否有算法收益必须再比较 checkpoint-500、等 step listwise 和 score-policy 三者的配对预测；不能只因为训练 loss 下降就进入大规模实验。
 
+## 最小 Pilot 结果与决策
+
+2026-11-19，score-policy 训练实际 active-group rate 为 `0.69`，所有 loss 有限，因此通过了功能门槛。固定 2,000-query item-disjoint 开发评估结果为：
+
+| 模型 | Top-1 | MRR | NDCG | 相对 checkpoint-500 净增 |
+|---|---:|---:|---:|---:|
+| checkpoint-500 | 0.4660 | 0.52469 | 0.55161 | — |
+| continued listwise | 0.4665 | **0.52575** | **0.55245** | +1 |
+| score-policy | 0.4665 | 0.52498 | 0.55181 | +1 |
+
+score-policy 与等 step listwise 的 Top-1 持平，但 MRR/NDCG 更低，没有显示出相对直接 listwise 监督的收益。这与审计中“完整标签下期望梯度方向接近、但采样方差更大”的预期一致。路径 C 至此停止扩展：不改温度/group size/seed 进行事后追试，不据此启动 DIVA-GRPO。如果仍需研究标准 token-level DIVA-GRPO，应将路径 A 的候选列表生成式 bridge SFT 作为新的独立实验。
+
 ## Pilot 通过门槛
 
 奖励方差审计先在训练侧监控或 item-disjoint 开发预测上运行，不使用官方 10k 调参。路径 C 的最小训练 Pilot 只有同时满足以下条件才启动：

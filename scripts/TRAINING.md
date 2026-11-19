@@ -490,3 +490,5 @@ bash scripts/run_reranker_score_policy_grpo_pilot.sh \
 ```
 
 入口从 `reranker_listwise_train_v1_merged/checkpoint-500-merged` 出发，两个 arm 共用固定 100-query JSONL、LoRA rank 8、学习率 `1e-6` 和 100 step。默认并行占用两张空闲卡，已有显存超过 1 GiB 时拒绝启动。score-policy 的实际 rollout 汇总保存在 `score_policy/rollout_summary.json`；active-group rate 低于 0.50 或 loss 出现非有限值时脚本失败。训练成功只通过功能门槛，下一步需合并两个 adapter，只在固定 item-disjoint 开发集与原 checkpoint-500 做配对对比，不再读取官方 10k。
+
+Pilot 已完成。score-policy 实际 active-group rate 为 `0.69`，loss 全部有限，通过功能门槛。2,000-query item-disjoint 上 checkpoint-500/继续 listwise/score-policy 的 Top-1 为 `0.4660/0.4665/0.4665`，MRR 为 `0.52469/0.52575/0.52498`，NDCG 为 `0.55161/0.55245/0.55181`。score-policy 未超过等 step listwise，因此不扩大该路径，不通过改温度、group size 或 seed 进行事后追试，也不据此启动 DIVA-GRPO。完整结果见 `进展更新-2026-11-19.md`。

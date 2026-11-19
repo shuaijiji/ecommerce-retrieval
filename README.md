@@ -4,7 +4,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-18：正式 8 卡 listwise LoRA 已完成 500 step，并在固定 2,000-query item-disjoint 开发集上唯一选定 checkpoint-500。随后按预注册协议只对该 checkpoint 运行一次官方冻结 Top-10 10,000 条评估：完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**，净增 136 条（救回 282，伤害 146），配对精确检验 `p≈4.7×10⁻¹¹`。候选内准确率从 87.80% 提升到 89.30%，平均延迟从 1.166 增至 1.218 秒/视频（+4.52%）。官方集已封存。categorical score-policy GRPO 奖励方差审计的主配置 active-group rate 为 63.65%，已通过 50% 预注册门槛；当前进入固定 100 query/100 step 的 score-policy 与等 step listwise 配对 Pilot，暂不执行 DIVA-GRPO。
+截至 2026-11-19：正式 listwise checkpoint-500 在官方冻结 Top-10 10,000 条上将完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**（+1.36pp），官方集已封存。categorical score-policy GRPO 的 100-query/100-step 配对 Pilot 已完成：实际 active-group rate 为 69%，通过功能门槛；但在 2,000-query item-disjoint 开发集上，score-policy 与等 step listwise 都只比 checkpoint-500 多对 1 条，且 score-policy 的 MRR/NDCG 低于 listwise。因此 score-policy 不扩大，不据此启动 DIVA-GRPO；checkpoint-500 继续作为当前精排最终模型。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)
@@ -15,6 +15,7 @@
 - [Qwen3-VL-Reranker 单卡训练链路通过](进展更新-2026-11-16.md)
 - [Listwise 排序门槛与多卡吞吐测试](进展更新-2026-11-17.md)
 - [Listwise 官方 10k 最终结果与 GRPO 下一步](进展更新-2026-11-18.md)
+- [Score-policy GRPO 最小 Pilot 结果](进展更新-2026-11-19.md)
 - [Qwen3-VL-Reranker 的 GRPO 适配审计](GRPO_ADAPTATION.md)
 - [已验证脚本](scripts/README.md)
 
