@@ -4,7 +4,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-19：正式 listwise checkpoint-500 在官方冻结 Top-10 10,000 条上将完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**（+1.36pp），官方集已封存。categorical score-policy GRPO Pilot 未超过等 step listwise，因此不扩大。召回侧 item-disjoint Top-25 并集将 Recall 从 63.5% 提高到 72.85%；checkpoint-500 完整 Top-1 从 46.60% 提高到 49.00%，扣除运行漂移后扩容本身净增 45 条/+2.25pp，通过预设收益门槛。由于平均候选数增至 2.47 倍，下一步是离线设计低置信度动态 Top-25 路由，不直接全量使用 Top-25。
+截至 2026-11-19：正式 listwise checkpoint-500 在官方冻结 Top-10 10,000 条上将完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**（+1.36pp），官方集已封存。categorical score-policy GRPO Pilot 未超过等 step listwise，因此不扩大。召回侧 Top-25 扩容通过受控门槛；固定 calibration/test 动态路由评估又确认，仅对 Top-10 reranker 首名分数最低的 25% query 扩展到 Top-25，在 test 上保留全量扩容 95.2% 的净收益，平均候选数仅从 15.12 增至 20.94。当前锁定 `low_top1_score + 25% budget`，下一步固化数值阈值和增量打分链路，再启动 embedding 对比学习 Pilot。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)
