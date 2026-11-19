@@ -100,7 +100,7 @@ DIVA 额外为原问题构造难度变体：同一变体的 rollout 共享 local
 | continued listwise | 0.4665 | **0.52575** | **0.55245** | +1 |
 | score-policy | 0.4665 | 0.52498 | 0.55181 | +1 |
 
-score-policy 与等 step listwise 的 Top-1 持平，但 MRR/NDCG 更低，没有显示出相对直接 listwise 监督的收益。这与审计中“完整标签下期望梯度方向接近、但采样方差更大”的预期一致。路径 C 至此停止扩展：不改温度/group size/seed 进行事后追试，不据此启动 DIVA-GRPO。如果仍需研究标准 token-level DIVA-GRPO，应将路径 A 的候选列表生成式 bridge SFT 作为新的独立实验。
+score-policy 与等 step listwise 的 Top-1 持平，但 MRR/NDCG 更低，没有显示出相对直接 listwise 监督的收益。直接配对中 score-policy 救回/伤害 listwise 各 15 条，净增 0，双侧精确 McNemar `p=1.0`；MRR/NDCG 分别降低 `0.000771/0.000632`。这与审计中“完整标签下期望梯度方向接近、但采样方差更大”的预期一致。路径 C 至此停止扩展：不改温度/group size/seed 进行事后追试，不据此启动 DIVA-GRPO。如果仍需研究标准 token-level DIVA-GRPO，应将路径 A 的候选列表生成式 bridge SFT 作为新的独立实验。
 
 ## Pilot 通过门槛
 
