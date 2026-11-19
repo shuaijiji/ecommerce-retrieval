@@ -172,3 +172,11 @@ def encode_checked(
     if not torch.isfinite(embeddings).all():
         raise RuntimeError("embedding contains NaN or Inf")
     return embeddings
+
+
+def model_weight_hashes(model_path: Path) -> dict[str, str]:
+    """Identify actual weights, since config.json is shared across checkpoints."""
+    paths = sorted(model_path.glob("*.safetensors")) or sorted(model_path.glob("pytorch_model*.bin"))
+    if not paths:
+        raise ValueError(f"no model weights in {model_path}")
+    return {path.name: sha256_file(path) for path in paths}

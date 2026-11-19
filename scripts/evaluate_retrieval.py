@@ -16,6 +16,7 @@ from retrieval_common import (
     QUERY_INSTRUCTION,
     TEXT_BUDGETS,
     atomic_json_dump,
+    model_weight_hashes,
     compose_video_text,
     encode_checked,
     load_embedder,
@@ -77,6 +78,8 @@ def parse_args() -> argparse.Namespace:
         help="optional newline-delimited allowlist from which queries are selected",
     )
     parser.add_argument("--modes", nargs="+", choices=MODES, default=list(MODES))
+    parser.add_argument("--require-weight-hashes", action="store_true")
+    parser.add_argument("--fixed-selection", type=Path)
     args = parser.parse_args()
     if args.item_indexes is None:
         args.item_indexes = [Path("/code/ecommerce-retrieval/artifacts/zero_shot_v0/items")]
@@ -237,6 +240,10 @@ def main() -> None:
         raise RuntimeError(
             "query model differs from the model used to build the item index"
         )
+    if args.require_weight_hashes:
+        weights = model_weight_hashes(args.model)
+        if any(config.get("model_weight_hashes") != weights for config in index_configs):
+            raise RuntimeError("index weights differ or are unverified; rebuild all item indexes")
     run_config = {
         "schema_version": 1,
         "kind": "qwen3-vl-full-pool-pilot",
@@ -260,6 +267,8 @@ def main() -> None:
             "pad odd T"
         ),
     }
+    if args.fixed_selection:
+        run_config["fixed_selection_sha256"] = sha256_file(args.fixed_selection)
     run_config_path = args.output_dir / "config.json"
     if run_config_path.exists():
         existing_config = json.loads(run_config_path.read_text(encoding="utf-8"))
@@ -271,7 +280,15 @@ def main() -> None:
         atomic_json_dump(run_config, run_config_path)
 
     selection_path = args.output_dir / "selected_photo_ids.json"
-    if selection_path.exists():
+    if args.fixed_selection:
+        selected_ids = json.loads(args.fixed_selection.read_text(encoding="utf-8"))
+        if (len(selected_ids) != args.num_queries or len(set(selected_ids)) != len(selected_ids)
+                or set(selected_ids) - label_by_photo.keys()):
+            raise ValueError("fixed selection is invalid or outside the allowed split")
+        if selection_path.exists() and json.loads(selection_path.read_text()) != selected_ids:
+            raise ValueError("saved selection differs from fixed selection")
+        atomic_json_dump(selected_ids, selection_path)
+    elif selection_path.exists():
         selected_ids = json.loads(selection_path.read_text(encoding="utf-8"))
         if len(selected_ids) != args.num_queries:
             raise RuntimeError(

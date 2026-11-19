@@ -1,10 +1,11 @@
 # 电商商品识别
 
+- [Embedding Pilot 执行说明](scripts/EMBEDDING_PILOT.md)
 - [本地方法与进展记录](项目记录.md)
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-19：正式 listwise checkpoint-500 在官方冻结 Top-10 10,000 条上将完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**（+1.36pp），官方集已封存。categorical score-policy GRPO Pilot 未超过等 step listwise，因此不扩大。召回侧 Top-25 扩容通过受控门槛；固定 calibration/test 动态路由评估又确认，仅对 Top-10 reranker 首名分数最低的 25% query 扩展到 Top-25，在 test 上保留全量扩容 95.2% 的净收益，平均候选数仅从 15.12 增至 20.94。当前锁定 `low_top1_score + 25% budget`，下一步固化数值阈值和增量打分链路，再启动 embedding 对比学习 Pilot。
+截至 2026-11-19：精排 checkpoint-500 与动态 Top-25 方案已固定，研究主线正式转入 **召回 embedding 对比学习 Pilot**。固定 item-disjoint 2,000 query 的两路 Top-100 并集 Recall 为 83.3%，仍有 334 条无法由精排救回。先全量审计 hard negatives 与重复组，再用 100 条训练 query 验证 loss/margin/显存，最后重建全部商品索引并在原 2,000 query 上对比两路 Recall@10/25/50/100。只有 Top-100 并集显著提升才扩大训练、重接动态 Top-25；官方 10k 保持封存。代码已准备，真实数据和 GPU 结果待远端执行。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)

@@ -14,6 +14,7 @@ import transformers
 
 from retrieval_common import (
     atomic_json_dump,
+    model_weight_hashes,
     encode_checked,
     load_embedder,
     read_jsonl,
@@ -68,6 +69,7 @@ def parse_args() -> argparse.Namespace:
         type=int,
         help="encode only the first N filtered items (smoke tests only)",
     )
+    parser.add_argument("--record-weight-hashes", action="store_true")
     return parser.parse_args()
 
 
@@ -142,6 +144,8 @@ def main() -> None:
         "transformers_version": transformers.__version__,
         "shard_size": args.shard_size,
     }
+    if args.record_weight_hashes:
+        config["model_weight_hashes"] = model_weight_hashes(args.model)
     config_path = args.output_dir / "config.json"
     if config_path.exists():
         existing = json.loads(config_path.read_text(encoding="utf-8"))

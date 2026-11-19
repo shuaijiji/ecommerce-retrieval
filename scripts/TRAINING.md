@@ -1,5 +1,8 @@
 # 精排训练执行顺序
 
+2026-11-19：后续研究主线已转入 [召回 embedding 对比学习 Pilot](EMBEDDING_PILOT.md)。以下精排阶段保留为历史执行记录。
+
+
 训练归档：`viewfs://hadoop-lt-cluster/home/mmu/wulei/data/competition/all_train_data.zip`。验证集只用于最终评估，禁止用于训练、hard-negative 挖掘或阈值选择。
 
 ## 1. 定位与审计
