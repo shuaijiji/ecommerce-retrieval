@@ -4,7 +4,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-19：正式 listwise checkpoint-500 在官方冻结 Top-10 10,000 条上将完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**（+1.36pp），官方集已封存。categorical score-policy GRPO 的 100-query/100-step 配对 Pilot 已完成：实际 active-group rate 为 69%，通过功能门槛；但在 2,000-query item-disjoint 开发集上，score-policy 与等 step listwise 都只比 checkpoint-500 多对 1 条，且 score-policy 的 MRR/NDCG 低于 listwise。因此 score-policy 不扩大，不据此启动 DIVA-GRPO；checkpoint-500 继续作为当前精排最终模型。
+截至 2026-11-19：正式 listwise checkpoint-500 在官方冻结 Top-10 10,000 条上将完整系统 Top-1 从 Base 的 79.36% 提升到 **80.72%**（+1.36pp），官方集已封存。categorical score-policy GRPO Pilot 未超过等 step listwise，因此不扩大。召回侧 item-disjoint Top-25 并集将 Recall 从 63.5% 提高到 72.85%；checkpoint-500 完整 Top-1 从 46.60% 提高到 49.00%，扣除运行漂移后扩容本身净增 45 条/+2.25pp，通过预设收益门槛。由于平均候选数增至 2.47 倍，下一步是离线设计低置信度动态 Top-25 路由，不直接全量使用 Top-25。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)
@@ -16,6 +16,7 @@
 - [Listwise 排序门槛与多卡吞吐测试](进展更新-2026-11-17.md)
 - [Listwise 官方 10k 最终结果与 GRPO 下一步](进展更新-2026-11-18.md)
 - [Score-policy GRPO 最小 Pilot 结果](进展更新-2026-11-19.md)
+- [Item-disjoint 召回曲线与 Top-25 受控扩容](进展更新-2026-11-19-召回扩容.md)
 - [Qwen3-VL-Reranker 的 GRPO 适配审计](GRPO_ADAPTATION.md)
 - [已验证脚本](scripts/README.md)
 

@@ -75,5 +75,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/evaluate_retrieval.py \
 - `run_reranker_score_policy_grpo_pilot.sh`：从合并后的 checkpoint-500 并行运行固定 100 query/100 step 的 score-policy 与等 step listwise 单卡对照。
 - `summarize_score_policy_grpo_stats.py`：汇总实际训练 rollout 的 active-group rate、奖励、advantage、策略熵和有限 loss gate。
 - `compare_reranker_predictions.py`：汇总固定候选上的 Top-1、MRR、NDCG、候选内准确率及相对 Base 的救回、伤害和净增正确数。
+- `evaluate_dynamic_top25_router.py`：将 Top-25 同次打分限制回 Top-10 作为无漂移基线，使用固定 calibration/test 哈希拆分评估 10%/25%/50%/75%/100% 扩容预算。
 
 远端命令和继续训练的门槛见 [TRAINING.md](TRAINING.md)。
