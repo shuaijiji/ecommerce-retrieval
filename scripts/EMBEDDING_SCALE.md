@@ -86,3 +86,41 @@ python scripts/compare_embedding_recall.py \
 ```
 
 比较两份报告。`comparison.json` 对原始 83.3% 基线，`comparison_vs_pilot.json` 对 85.95% Pilot。若未超过 Pilot，不追调开发集，不宣称扩大有效；保留较优模型，分析训练侧问题。若扩大有明确收益，再准备固定 checkpoint-500 的新候选 Top1/Top3 精排评估和 calibration 侧动态 Top-25 阈值校准。
+
+## 5. 单卡建库切换到八卡（2026-11-20）
+
+用户要求八卡利用。可复用 `embedding_eval_1k_v1/train_item_index` 中已完成分片，分片划分/模型/权重哈希/batch size/预处理协议保持相同，不重新训练模型。仅八卡并行商品建库，最终固定2,000-query召回保持单卡。
+
+先拉取代码，用专用工具核对并停止原 shell launcher 及其子进程。以下 PID=4137568 来自用户实际启动命令；若 PID 已退出或不匹配，工具会拒绝，不猜测新 PID，不直接使用宽泛 pkill。完成的原子 `.pt` 保留，未完成的 `.tmp` 文件不作为有效分片使用。
+
+```bash
+git -C /code/ecommerce-retrieval-source pull --ff-only
+python /code/ecommerce-retrieval-source/scripts/stop_embedding_eval.py \
+  --pid 4137568 \
+  --output-dir /code/ecommerce-retrieval/artifacts/train_v0/embedding_eval_1k_v1
+```
+
+确认打印 `Verified launcher and workers stopped` 后，按前文 Python 备份/完整覆盖方式同步 scripts（不要只复制新入口而遗漏公共脚本），保持 `ecom-infer` 环境，不更改 PyTorch/Transformers 版本。
+
+```bash
+cd /code/ecommerce-retrieval
+conda activate ecom-infer
+nohup python -u scripts/run_embedding_index_8gpu.py \
+  --root /code/ecommerce-retrieval \
+  --model /code/ecommerce-retrieval/artifacts/train_v0/embedding_train_1k_v1/merged \
+  --output-dir /code/ecommerce-retrieval/artifacts/train_v0/embedding_eval_1k_v1 \
+  --gpus 0,1,2,3,4,5,6,7 \
+  > artifacts/train_v0/embedding_scale_logs/eval_8gpu_launcher.log 2>&1 &
+```
+
+启动会拒绝仍在运行的旧索引 writer，解析物理 GPU UUID，检查每张卡的已有显存（>1GiB 拒绝）。不终止其他 GPU 占用，也没有忙卡绕过开关。八张卡需均可用；否则先确认占用来源和释放情况。
+
+先按1/2/4/8卡各运行每卡最多4个新分片；这些是实际索引分片，会继续复用。性能报告记录所有worker实际编码时间窗口上的整体吞吐和逐卡利用率中位数；GPU CSV同时记录显存与功耗。八卡速度至少单卡4倍且每卡利用率中位数≥60%后才自动启动全量八卡 train/dev 商品建库；失败保留所有完成分片并停止，不放宽门槛追跑。限制每worker CPU线程数，避免8进程抢占过多线程。
+
+```bash
+tail -n 30 artifacts/train_v0/embedding_scale_logs/eval_8gpu_launcher.log
+ls artifacts/train_v0/embedding_eval_1k_v1/logs/eight_gpu_*/
+find artifacts/train_v0/embedding_eval_1k_v1/train_item_index -name 'part-*.pt' | wc -l
+```
+
+训练商品索引预计1493个分片；全局进度看有效分片数，不把各worker日志中的全局商品位置相加。worker按分片编号取模分配，日志中的 encoded位置不是全局完成比例。资源与worker日志位于本轮独立 `logs/eight_gpu_<时间>/`。只有完整分片校验通过才发布manifest并继续召回、生成 comparison.json。该入口尚未在远端实际执行，八卡速度必须以此次性能结果为准。

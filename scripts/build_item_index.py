@@ -70,6 +70,8 @@ def parse_args() -> argparse.Namespace:
         help="encode only the first N filtered items (smoke tests only)",
     )
     parser.add_argument("--record-weight-hashes", action="store_true")
+    parser.add_argument("--max-new-shards", type=int, help="performance pilot: cap newly encoded shards per worker")
+    parser.add_argument("--benchmark-output", type=Path)
     return parser.parse_args()
 
 
@@ -105,6 +107,8 @@ def main() -> None:
     if args.limit is not None and args.limit < 1:
         raise ValueError("limit must be positive")
 
+    if args.max_new_shards is not None and args.max_new_shards < 1:
+        raise ValueError("max-new-shards must be positive")
     item_path = args.data_root / "item_info.jsonl"
     items = read_jsonl(item_path)
     assert isinstance(items, list)
@@ -196,12 +200,15 @@ def main() -> None:
         )
         return
 
+    if args.max_new_shards is not None:
+        missing_assigned = missing_assigned[:args.max_new_shards]
     print(
         f"partition {args.partition_index}/{args.partitions}: "
         f"{len(missing_assigned)} missing of {len(assigned_specs)} assigned shards"
     )
     print("loading model...")
     model = load_embedder(args.repo, args.model, args.image_size)
+    benchmark_start_unix = time.time()
     run_start = time.perf_counter()
     newly_encoded = 0
 
@@ -240,6 +247,10 @@ def main() -> None:
             f"{time.perf_counter() - shard_started:.1f}s"
         )
 
+    if args.benchmark_output:
+        atomic_json_dump({"encoded_items": newly_encoded,
+                          "start_unix": benchmark_start_unix, "end_unix": time.time(),
+                          "encoding_seconds": time.perf_counter() - run_start}, args.benchmark_output)
     completed_after = {
         shard_path
         for _, _, _, _, shard_ids, shard_path in shard_specs
