@@ -44,9 +44,11 @@ def main():
     p.add_argument('--num-queries', type=int, default=100)
     p.add_argument('--negatives', type=int, default=4)
     p.add_argument('--seed', type=int, default=20261119)
+    p.add_argument('--scale-up', action='store_true', help='allow 1,000–5,000 queries after pilot recall gate')
     a = p.parse_args()
-    if not 100 <= a.num_queries <= 500 or not 2 <= a.negatives <= 20:
-        raise ValueError('pilot requires 100–500 queries and 2–20 negatives')
+    lower, upper = (1000, 5000) if a.scale_up else (100, 500)
+    if not lower <= a.num_queries <= upper or not 2 <= a.negatives <= 20:
+        raise ValueError(f'require {lower}–{upper} queries and 2–20 negatives')
     a.output_dir.mkdir(parents=True, exist_ok=False)
     paths = {n: a.split_dir / (n + '.txt') for n in
              ('train_photo_ids', 'dev_photo_ids', 'train_item_ids', 'dev_item_ids')}
@@ -115,7 +117,7 @@ def main():
     write_jsonl(sorted(rows, key=lambda r: r['photo_id']), a.output_dir / 'samples.jsonl')
     write_json_atomic({
         'complete': True, 'audited_queries': cursor, 'pilot_queries': len(rows),
-        'seed': a.seed, 'negatives': a.negatives, 'data_root': str(a.data_root.resolve()),
+        'scale_up': a.scale_up, 'seed': a.seed, 'negatives': a.negatives, 'data_root': str(a.data_root.resolve()),
         'source_hashes': {str(p): sha256_file(p) for p in [*paths.values(), a.labels,
                           a.duplicate_groups, config_path, a.candidates / 'manifest.json']},
         'candidate_shard_hashes': hashes, 'samples_sha256': sha256_file(a.output_dir / 'samples.jsonl'),

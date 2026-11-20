@@ -5,7 +5,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-19：精排 checkpoint-500 与动态 Top-25 方案已固定，研究主线正式转入 **召回 embedding 对比学习 Pilot**。固定 item-disjoint 2,000 query 的两路 Top-100 并集 Recall 为 83.3%，仍有 334 条无法由精排救回。先全量审计 hard negatives 与重复组，再用 100 条训练 query 验证 loss/margin/显存，最后重建全部商品索引并在原 2,000 query 上对比两路 Recall@10/25/50/100。只有 Top-100 并集显著提升才扩大训练、重接动态 Top-25；官方 10k 保持封存。代码已准备，真实数据和 GPU 结果待远端执行。
+截至 2026-11-20：100-query/100-step 召回 embedding 对比学习 Pilot 已通过。用户远端回报固定 item-disjoint 2,000 条上，两路 Top-100 并集 Recall 从 **83.30% 提高到 85.95%**，救回/丢失 55/2、净增 53，配对 p≈2.30e-14；平均训练侧 loss 下降、margin 改善，峰值 allocated 显存 4.63 GiB。下一轮固定为 **1,000 query / 1,000 step**，先做单卡 100-step 性能 Pilot，再训练和重建商品索引，同时比较原始基线与 100-query Pilot。扩大实验代码已准备，尚未远端执行。见 [扩大实验执行说明](scripts/EMBEDDING_SCALE.md)。最终系统 Top1/Top3 仍待新候选精排验证，公开 10k 保持封存。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)

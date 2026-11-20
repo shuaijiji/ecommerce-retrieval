@@ -3,6 +3,10 @@
 import argparse
 import json
 import random
+import time
+import resource
+import statistics
+from prepare_reranker_sft import select_ids
 from pathlib import Path
 import torch
 import torch.nn.functional as F
@@ -66,6 +70,9 @@ def main():
     p.add_argument('--lr', type=float, default=1e-5)
     p.add_argument('--temperature', type=float, default=0.07)
     p.add_argument('--seed', type=int, default=20261119)
+    p.add_argument('--scale-up', action='store_true')
+    p.add_argument('--monitor-queries', type=int, default=100)
+    p.add_argument('--performance-only', action='store_true', help='measure 100 steps; do not export a model')
     a = p.parse_args()
     if a.steps < 1 or a.lr <= 0 or a.temperature <= 0:
         raise ValueError('invalid hyperparameters')
@@ -76,8 +83,15 @@ def main():
     if not manifest['complete'] or sha256_file(samples) != manifest['samples_sha256']:
         raise ValueError('dataset manifest/hash mismatch')
     rows = [json.loads(line) for line in samples.read_text().splitlines()]
-    if not 100 <= len(rows) <= 500:
-        raise ValueError('require 100–500 training queries')
+    lower, upper = (1000, 5000) if a.scale_up else (100, 500)
+    if not lower <= len(rows) <= upper or bool(manifest.get('scale_up')) != a.scale_up:
+        raise ValueError('dataset size/stage does not match --scale-up')
+    if not 1 <= a.monitor_queries <= len(rows):
+        raise ValueError('invalid monitor-queries')
+    if a.performance_only and (not a.scale_up or a.steps != 100):
+        raise ValueError('performance pilot requires --scale-up --steps 100')
+    monitor_ids = set(select_ids([r['photo_id'] for r in rows], a.monitor_queries, a.seed + 1))
+    monitor_rows = [r for r in rows if r['photo_id'] in monitor_ids]
     root = Path(manifest['data_root'])
     a.output_dir.mkdir(parents=True, exist_ok=False)
     random.seed(a.seed)
@@ -99,21 +113,29 @@ def main():
     optimizer = torch.optim.AdamW(trainable, lr=a.lr)
     atomic_json_dump({'args': {k: str(v) if isinstance(v, Path) else v for k,v in vars(a).items()},
                      'dataset_manifest_sha256': sha256_file(a.dataset / 'manifest.json'),
+                     'training_script_sha256': sha256_file(Path(__file__)),
+                     'retrieval_common_sha256': sha256_file(Path(__file__).with_name('retrieval_common.py')),
                      'upstream_source_sha256': sha256_file(a.repo / 'src/models/qwen3_vl_embedding.py'),
                      'torch_version': torch.__version__, 'targets': targets,
                      'base_model_weight_hashes': model_weight_hashes(a.model),
                      'trainable_parameters': sum(p.numel() for p in trainable),
                      'query_mode': 'multimodal', 'in_batch_negatives': False}, a.output_dir / 'config.json')
-    before = measure(embedder, rows, root, a.temperature)
+    print(f'measuring baseline on {len(monitor_rows)} fixed training-side monitor queries', flush=True)
+    before = measure(embedder, monitor_rows, root, a.temperature)
     atomic_json_dump(before, a.output_dir / 'before.json')
     order = list(range(len(rows)))
     random.shuffle(order)
     embedder.model.train()
     torch.cuda.reset_peak_memory_stats()
+    step_times = []
+    cpu_started = time.process_time()
+    training_started = time.perf_counter()
     with (a.output_dir / 'steps.jsonl').open('w') as log:
         for step in range(a.steps):
             if step and step % len(order) == 0:
                 random.shuffle(order)
+            torch.cuda.synchronize()
+            step_started = time.perf_counter()
             optimizer.zero_grad(set_to_none=True)
             loss, margin = objective(embedder, rows[order[step % len(order)]], root, a.temperature)
             if not torch.isfinite(loss):
@@ -123,17 +145,38 @@ def main():
             if norm <= 0:
                 raise RuntimeError('zero trainable gradient')
             optimizer.step()
-            record = {'step': step + 1, 'loss': float(loss.detach()),
+            torch.cuda.synchronize()
+            step_seconds = time.perf_counter() - step_started
+            step_times.append(step_seconds)
+            record = {'timestamp_unix': time.time(), 'step_seconds': step_seconds, 'step': step + 1, 'loss': float(loss.detach()),
                       'margin': float(margin.detach()), 'gradient_norm': float(norm)}
             log.write(json.dumps(record) + '\n')
             log.flush()
             print(json.dumps(record), flush=True)
-    after = measure(embedder, rows, root, a.temperature)
+    training_seconds = time.perf_counter() - training_started
+    cpu_seconds = time.process_time() - cpu_started
+    steady = step_times[20:] if len(step_times) > 20 else step_times
+    perf = {'training_seconds': training_seconds,
+            'steady_queries_per_second': len(steady) / sum(steady),
+            'median_step_seconds': statistics.median(steady),
+            'cpu_seconds': cpu_seconds, 'process_maxrss_kib_linux': resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+            'peak_allocated_gib': torch.cuda.max_memory_allocated() / 1024**3,
+            'peak_reserved_gib': torch.cuda.max_memory_reserved() / 1024**3,
+            'warmup_steps_excluded': len(step_times) - len(steady),
+            'completed_steps': len(step_times), 'performance_only': a.performance_only}
+    atomic_json_dump(perf, a.output_dir / 'performance.json')
+    if a.performance_only:
+        print(json.dumps(perf), flush=True)
+        return
+    print('measuring final training-side monitor loss and margin', flush=True)
+    after = measure(embedder, monitor_rows, root, a.temperature)
     passed = after['loss'] < before['loss'] and after['hardest_negative_margin'] > before['hardest_negative_margin']
     embedder.model.save_pretrained(a.output_dir / 'adapter')
     atomic_json_dump({'before': before, 'after': after, 'functional_gate': passed,
                      'peak_allocated_gib': torch.cuda.max_memory_allocated() / 1024**3,
                      'peak_reserved_gib': torch.cuda.max_memory_reserved() / 1024**3,
+                     'monitor_queries': len(monitor_rows),
+                     'monitor_photo_ids': sorted(monitor_ids),
                      'generalization_claim': False}, a.output_dir / 'summary.json')
     if not passed:
         raise RuntimeError('functional gate failed; retain artifacts, do not expand')

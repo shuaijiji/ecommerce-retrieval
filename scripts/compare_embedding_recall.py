@@ -16,7 +16,7 @@ def paired(before, after):
             'gained': gained, 'lost': lost, 'net': gained-lost, 'paired_p_two_sided': p}
 
 
-def compare(base, trained, expected=2000):
+def compare(base, trained, expected=2000, baseline_recall=0.833):
     ids = json.loads((base/'selected_photo_ids.json').read_text())
     if len(ids) != expected or len(set(ids)) != expected:
         raise ValueError('wrong baseline selection')
@@ -52,11 +52,11 @@ def compare(base, trained, expected=2000):
                 hits[idx]['union',k].append(any(truth in v[:k] for v in routes.values()))
     metrics = {f'{m}@{k}': paired(hits[0][m,k], hits[1][m,k]) for m,k in hits[0]}
     main = metrics['union@100']
-    if abs(main['baseline'] - 0.833) > 1e-9:
-        raise ValueError('baseline Top-100 union is not the frozen 83.3%')
+    if abs(main['baseline'] - baseline_recall) > 1e-9:
+        raise ValueError('baseline Top-100 union differs from the specified frozen reference')
     return {'queries': expected, 'metrics': metrics,
-            'expansion_gate': main['trained'] > .833 and main['paired_p_two_sided'] < .05,
-            'gate_definition': 'union@100 > 83.3% and paired two-sided exact p < 0.05',
+            'expansion_gate': main['trained'] > baseline_recall and main['paired_p_two_sided'] < .05,
+            'gate_definition': f'union@100 > {baseline_recall:.4f} and paired two-sided exact p < 0.05',
             'official_10k_used': False}
 
 
@@ -64,8 +64,9 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('baseline','trained','output'):
         p.add_argument('--'+n,type=Path,required=True)
+    p.add_argument('--baseline-recall', type=float, default=0.833)
     a=p.parse_args()
-    result=compare(a.baseline,a.trained)
+    result=compare(a.baseline,a.trained,baseline_recall=a.baseline_recall)
     a.output.parent.mkdir(parents=True,exist_ok=True)
     write_json_atomic(result,a.output)
     print(json.dumps(result,indent=2))
