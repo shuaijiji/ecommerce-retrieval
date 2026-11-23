@@ -1,5 +1,8 @@
 # 已验证脚本
 
+最新入口：[正式50k推理与提交](OFFICIAL_SUBMISSION.md)。测试数据已由用户确认到位；新正式入口待远端GPU Pilot验证。
+
+
 当前入口：[真实增量Pilot与正式数据准备](EVALUATION_READINESS.md)。动态Top-25离线结果已确认；新GPU入口待远端验证。
 
 
