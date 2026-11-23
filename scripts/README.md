@@ -1,5 +1,8 @@
 # 已验证脚本
 
+当前入口：[真实增量Pilot与正式数据准备](EVALUATION_READINESS.md)。动态Top-25离线结果已确认；新GPU入口待远端验证。
+
+
 最新主线：[新召回动态Top-25](RETRIEVER_DYNAMIC_TOP25.md)。七卡Top-10三组对照已由用户完成；动态实验入口待远端执行。
 
 
