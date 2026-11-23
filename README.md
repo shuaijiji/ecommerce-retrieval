@@ -5,7 +5,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-20：100-query/100-step 召回 embedding 对比学习 Pilot 已通过。用户远端回报固定 item-disjoint 2,000 条上，两路 Top-100 并集 Recall 从 **83.30% 提高到 85.95%**，救回/丢失 55/2、净增 53，配对 p≈2.30e-14；平均训练侧 loss 下降、margin 改善，峰值 allocated 显存 4.63 GiB。下一轮固定为 **1,000 query / 1,000 step**，先做单卡 100-step 性能 Pilot，再训练和重建商品索引，同时比较原始基线与 100-query Pilot。扩大实验代码已准备，尚未远端执行。见 [扩大实验执行说明](scripts/EMBEDDING_SCALE.md)。最终系统 Top1/Top3 仍待新候选精排验证，公开 10k 保持封存。
+截至 2026-11-23：1k召回模型在固定2,000条上的Top-100并集Recall达到 **87.10%**，相对原始83.30%显著提升，但相对100-query Pilot的85.95%增量不显著（净增23，p=.1315）。停止扩大训练，下一步对三套召回采用同一checkpoint-500比较系统 **Top1/Top3**。复用现有召回结果，不再建库；支持1–8张空闲GPU分摊query。代码已准备，真实精排尚未执行。见 [固定精排对照说明](scripts/RETRIEVER_RERANK_COMPARISON.md)。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)

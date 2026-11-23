@@ -1,5 +1,8 @@
 # 已验证脚本
 
+2026-11-23当前主线：[三套召回的固定精排对照](RETRIEVER_RERANK_COMPARISON.md)，扩大训练暂停；新对照入口尚待远端GPU验证。
+
+
 当前主线：[召回 embedding 1k 扩大实验](EMBEDDING_SCALE.md)。100-query Pilot 已由用户远端验证通过；1k 扩大入口尚待执行。
 
 
