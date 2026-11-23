@@ -16,9 +16,15 @@ def main():
     p.add_argument('--gpus',default='5,6,7',help='physical idle GPU indices; e.g. 1,5,6,7 or all eight if idle')
     p.add_argument('--output-dir',type=Path)
     p.add_argument('--prepare-only',action='store_true')
+    p.add_argument('--top-k',type=int,choices=(10,25),default=10)
+    p.add_argument('--arms',nargs='+',choices=('original','pilot100','train1k'))
+    p.add_argument('--top10-root',type=Path,help='cached completed Top-10 comparison directory for Top-25 analysis')
     a=p.parse_args()
     root=a.root.resolve()
-    out=(a.output_dir or root/'artifacts/train_v0/retriever_rerank_top10_v1').resolve()
+    default_output='retriever_dynamic_top25_v1' if a.top_k==25 else 'retriever_rerank_top10_v1'
+    out=(a.output_dir or root/'artifacts/train_v0'/default_output).resolve()
+    if a.top_k==25 and a.top10_root is None:
+        raise ValueError('Top-25 requires --top10-root for cached Top-10 scores')
     gpu_ids=a.gpus.split(',')
     if not 1<=len(gpu_ids)<=8 or len(set(gpu_ids))!=len(gpu_ids):
         raise ValueError('use 1–8 distinct physical GPUs')
@@ -37,6 +43,12 @@ def main():
     if len(ids)!=2000 or len(set(ids))!=2000:
         raise ValueError('need exactly 2,000 frozen queries')
     ids=sorted(ids)
+    requested=a.arms or (['pilot100','train1k'] if a.top_k==25 else list(sources))
+    if len(set(requested))!=len(requested):
+        raise ValueError('duplicate arms')
+    if a.top_k==10 and requested!=list(sources):
+        raise ValueError('Top-10 comparison requires all three original arms')
+    sources={name:sources[name] for name in requested}
     source_hashes={}
     reference=None
     for name,source in sources.items():
@@ -54,7 +66,7 @@ def main():
         import tempfile
         with tempfile.TemporaryDirectory() as temporary:
             staged=Path(temporary)/'candidates.jsonl'
-            generate(argparse.Namespace(retrieval_dir=source,top_k=10,expected_count=2000,output=staged))
+            generate(argparse.Namespace(retrieval_dir=source,top_k=a.top_k,expected_count=2000,output=staged))
             if candidate.exists() and candidate.read_bytes()!=staged.read_bytes():
                 raise ValueError('candidate source changed; use a fresh output directory')
             write_rows(load_rows(staged),candidate)
@@ -70,7 +82,18 @@ def main():
     config={'sources':source_hashes,'worker_count':len(gpu_ids),'batch_size':4,
             'reranker':str(model),'model_weights':{p.name:digest(p) for p in sorted(model.glob('*.safetensors'))},
             'query_ids_sha256':__import__('hashlib').sha256('\n'.join(ids).encode()).hexdigest(),
-            'labels_used_for_candidates':False,'top_k_per_route':10}
+            'labels_used_for_candidates':False,'top_k_per_route':a.top_k}
+    if a.top_k==25:
+        cached=a.top10_root.resolve()
+        config['cached_top10_root']=str(cached)
+        config['router_seed']=20261119
+        config['router_budget']=.25
+        from evaluate_retriever_dynamic_top25 import freeze_threshold
+        config['router_thresholds']={name:freeze_threshold(
+            cached/'candidates'/(name+'.jsonl'),cached/name/'predictions_2000.jsonl') for name in sources}
+        config['cached_top10_hashes']={name:{
+            'candidates':digest(cached/'candidates'/(name+'.jsonl')),
+            'predictions':digest(cached/name/'predictions_2000.jsonl')} for name in sources}
     if not config['model_weights']:
         raise ValueError('checkpoint-500 merged model missing')
     cp=out/'experiment_config.json'
@@ -116,8 +139,14 @@ def main():
         if sorted(r['photo_id'] for r in rows)!=ids:
             raise ValueError('merged predictions have missing/duplicate query IDs')
         write_rows(sorted(rows,key=lambda r:r['photo_id']),out/name/'predictions_2000.jsonl')
-    subprocess.run(['python',str(root/'scripts/compare_retriever_rerank.py'),
-                    '--output-root',str(out),'--labels',str(base/'clean_labels.jsonl')],cwd=root,check=True)
+    if a.top_k==25:
+        analysis=['python',str(root/'scripts/evaluate_retriever_dynamic_top25.py'),
+                  '--top10-root',str(a.top10_root.resolve()),'--top25-root',str(out),
+                  '--arms',*requested,'--labels',str(base/'clean_labels.jsonl')]
+    else:
+        analysis=['python',str(root/'scripts/compare_retriever_rerank.py'),
+                  '--output-root',str(out),'--labels',str(base/'clean_labels.jsonl')]
+    subprocess.run(analysis,cwd=root,check=True)
     print('Complete: '+str(out/'comparison.json'),flush=True)
 
 

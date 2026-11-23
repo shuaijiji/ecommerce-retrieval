@@ -55,6 +55,19 @@ class IncrementalTop25RouterTest(unittest.TestCase):
         self.assertEqual(result["harmed_vs_top10"], 1)
         self.assertEqual(result["net_correct_vs_top10"], 0)
 
+    def test_top3_rescue_and_harm_are_paired(self):
+        examples={
+            'a':dict(top10_ranking=['x','y','z','p'],incremental_ranking=['x','y','p','z','n'],
+                     full_top25_ranking=['x','y','p','z','n'],truth='p',top10_candidate_count=4,top25_candidate_count=5),
+            'b':dict(top10_ranking=['x','y','p','z'],incremental_ranking=['n','x','y','p','z'],
+                     full_top25_ranking=['n','x','y','p','z'],truth='p',top10_candidate_count=4,top25_candidate_count=5)}
+        result=summarize(['a','b'],examples,{'a','b'},'incremental')
+        self.assertEqual(result['system_top3'],.5)
+        self.assertEqual(result['top3_rescued_from_top10'],1)
+        self.assertEqual(result['top3_harmed_vs_top10'],1)
+        self.assertEqual(result['top3_net_vs_top10'],0)
+        self.assertEqual(result['top3_paired_exact_two_sided_p'],1)
+
     def test_evaluate_fits_threshold_on_calibration(self):
         examples = {}
         for index in range(20):

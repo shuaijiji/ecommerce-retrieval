@@ -114,6 +114,7 @@ def summarize(
     if expanded_mode not in {"incremental", "full_top25"}:
         raise ValueError(f"unknown expanded mode: {expanded_mode}")
     correct = hits = rescued = harmed = 0
+    top3_correct = top3_rescued = top3_harmed = 0
     reciprocal_rank_sum = ndcg_sum = candidate_sum = 0.0
     for photo_id in ids:
         example = examples[photo_id]
@@ -132,6 +133,11 @@ def summarize(
         ok = ranking[0] == truth
         hit = truth in ranking
         rank = ranking.index(truth) + 1 if hit else None
+        base_top3 = truth in base[:3]
+        current_top3 = truth in ranking[:3]
+        top3_correct += current_top3
+        top3_rescued += not base_top3 and current_top3
+        top3_harmed += base_top3 and not current_top3
         correct += ok
         hits += hit
         rescued += use_expanded and not base_ok and ok
@@ -149,6 +155,12 @@ def summarize(
         "candidate_recall": hits / count,
         "correct": correct,
         "system_top1": correct / count,
+        "correct_top3": top3_correct,
+        "system_top3": top3_correct / count,
+        "top3_rescued_from_top10": top3_rescued,
+        "top3_harmed_vs_top10": top3_harmed,
+        "top3_net_vs_top10": top3_rescued - top3_harmed,
+        "top3_paired_exact_two_sided_p": _exact_p_value(top3_rescued, top3_harmed),
         "system_mrr": reciprocal_rank_sum / count,
         "system_ndcg": ndcg_sum / count,
         "net_correct_vs_top10": correct - base_correct,

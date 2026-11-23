@@ -5,7 +5,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 2026-11-23：1k召回模型在固定2,000条上的Top-100并集Recall达到 **87.10%**，相对原始83.30%显著提升，但相对100-query Pilot的85.95%增量不显著（净增23，p=.1315）。停止扩大训练，下一步对三套召回采用同一checkpoint-500比较系统 **Top1/Top3**。复用现有召回结果，不再建库；支持1–8张空闲GPU分摊query。代码已准备，真实精排尚未执行。见 [固定精排对照说明](scripts/RETRIEVER_RERANK_COMPARISON.md)。
+截至 2026-11-23：固定checkpoint-500的2,000-query精排对照已完成，original/pilot100/train1k的Top1为 **46.60%/48.45%/49.00%**，Top3为 **57.55%/60.00%/60.90%**。两套训练召回均显著优于原始召回，1k对pilot100增量不显著（Top1净增11、p=.485）。暂停扩大训练；已准备 [新召回动态Top-25实验](scripts/RETRIEVER_DYNAMIC_TOP25.md)，pilot100为主、1k为对照，复用Top-10缓存，固定25%预算，仅在calibration计算阈值，GPU前登记；新实验尚未执行。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)

@@ -1,5 +1,8 @@
 # 已验证脚本
 
+最新主线：[新召回动态Top-25](RETRIEVER_DYNAMIC_TOP25.md)。七卡Top-10三组对照已由用户完成；动态实验入口待远端执行。
+
+
 2026-11-23当前主线：[三套召回的固定精排对照](RETRIEVER_RERANK_COMPARISON.md)，扩大训练暂停；新对照入口尚待远端GPU验证。
 
 
