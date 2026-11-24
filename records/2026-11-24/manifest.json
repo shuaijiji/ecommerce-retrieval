@@ -47,6 +47,14 @@
     "error_budget_server_reported.json": {
       "source": "User-pasted server summary.json from error_budget_after_submission_v1; report payload preserved, no direct server access",
       "sha256": "0f37efcc36c8e26b66ac0ae90824d828677018e1f2326d06e589a50004a7b0d0"
+    },
+    "pilot100_review_samples.jsonl": {
+      "source": "User-provided downloaded server file; 10 fixed samples per error bucket",
+      "sha256": "5842b4cc18d51ed77d5dbbcba9e0538627943cba323a80ffebb8ff156b3b6d08"
+    },
+    "sample_text_review.json": {
+      "source": "Local deterministic title/rank checks on provided samples; images not inspected",
+      "sha256": "231304b68dcf5a3f4473da4c00c6cdd614306262153400bf0e6d9515a8865292"
     }
   }
 }

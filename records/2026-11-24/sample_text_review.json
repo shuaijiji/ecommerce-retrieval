@@ -1,0 +1,43 @@
+{
+  "source_sha256": "5842b4cc18d51ed77d5dbbcba9e0538627943cba323a80ffebb8ff156b3b6d08",
+  "rows": 50,
+  "sampling": "10 per error bucket; not population representative",
+  "visual_media_inspected": false,
+  "title_equality_does_not_establish_same_product": true,
+  "repeated_titles_in_predicted_top3": {
+    "count": 7,
+    "photo_ids": [
+      "174122792002",
+      "196119526484",
+      "196880803735",
+      "200473048967",
+      "195500134254",
+      "202668682081",
+      "119012229196"
+    ]
+  },
+  "truth_top1_identical_title": {
+    "count": 1,
+    "photo_ids": [
+      "208306334364"
+    ]
+  },
+  "retrieval_rank1_but_rerank_wrong": {
+    "count": 5,
+    "denominator_rerank_error_samples": 20,
+    "photo_ids": [
+      "195485962816",
+      "191304674738",
+      "137834463827",
+      "202668682081",
+      "207255901050"
+    ]
+  },
+  "suspected_alignment_cases": [
+    "204112712250",
+    "200473048967",
+    "191304674738"
+  ],
+  "training_label_changes": false,
+  "official_inference_changes": false
+}
