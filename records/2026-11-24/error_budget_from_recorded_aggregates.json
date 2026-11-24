@@ -1,0 +1,56 @@
+{
+  "source": "Algebraic decomposition of recorded aggregate reports; individual-case reconstruction still pending on server",
+  "inputs": {
+    "dynamic_report": "records/2026-11-24/retriever_dynamic_top25_test1000.json",
+    "top100_hits": "Earlier user-reported 2000-query recall: pilot100 .8595; train1k .8710"
+  },
+  "arms": {
+    "pilot100": {
+      "count": 2000,
+      "correct_top1": 990,
+      "correct_top3": 1227,
+      "error_count": 1010,
+      "error_counts": {
+        "retrieval_miss_top100": 281,
+        "truncated_between_top100_and_top25": 200,
+        "not_expanded_truth_only_in_top25_tail": 107,
+        "rerank_truth_at_rank2_or3": 237,
+        "rerank_truth_at_rank4_or_later": 185
+      },
+      "current_candidate_oracle": 0.706,
+      "top25_candidate_oracle": 0.7595,
+      "top100_candidate_oracle": 0.8595,
+      "error_fractions": {
+        "retrieval_miss_top100": 0.27821782178217824,
+        "truncated_between_top100_and_top25": 0.19801980198019803,
+        "not_expanded_truth_only_in_top25_tail": 0.10594059405940594,
+        "rerank_truth_at_rank2_or3": 0.23465346534653464,
+        "rerank_truth_at_rank4_or_later": 0.18316831683168316
+      }
+    },
+    "train1k": {
+      "count": 2000,
+      "correct_top1": 1003,
+      "correct_top3": 1244,
+      "error_count": 997,
+      "error_counts": {
+        "retrieval_miss_top100": 258,
+        "truncated_between_top100_and_top25": 185,
+        "not_expanded_truth_only_in_top25_tail": 96,
+        "rerank_truth_at_rank2_or3": 241,
+        "rerank_truth_at_rank4_or_later": 217
+      },
+      "current_candidate_oracle": 0.7305,
+      "top25_candidate_oracle": 0.7785,
+      "top100_candidate_oracle": 0.871,
+      "error_fractions": {
+        "retrieval_miss_top100": 0.2587763289869609,
+        "truncated_between_top100_and_top25": 0.1855566700100301,
+        "not_expanded_truth_only_in_top25_tail": 0.09628886659979939,
+        "rerank_truth_at_rank2_or3": 0.24172517552657974,
+        "rerank_truth_at_rank4_or_later": 0.2176529588766299
+      }
+    }
+  },
+  "official_test_error_labels_used": false
+}

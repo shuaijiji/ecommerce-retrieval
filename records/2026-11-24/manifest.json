@@ -1,6 +1,6 @@
 {
   "recorded_at": "2026-11-24 Asia/Shanghai",
-  "source_policy": "Attached reports extracted from pasted JSON; non-attached scalar reports transcribed from user messages. No server access or independent verification.",
+  "source_policy": "Each entry states its evidence source. Earlier terminal snapshots remain historical; newer local audits independently verify only the stated file checks. No direct server access.",
   "files": {
     "retriever_rerank_top10_2000.json": {
       "source": "user pasted attachment",
@@ -31,6 +31,18 @@
       "source": "user terminal report in chat",
       "note": "Recorded reported values/status; not a downloaded remote artifact",
       "sha256": "aa7c10d0a14e2994d1489b4e4500110d826c4f74eea8f0084f78a2365574860d"
+    },
+    "submission_local_readonly_audit.json": {
+      "source": "Local XLSX read-only audit and GitHub workbook/export manifest hash comparison",
+      "sha256": "0f981c48f9f8c3fe6c9a4880558afbdb9cd94518183ff8fb59ff6df7432e9b8a"
+    },
+    "leaderboard_v1_reported.json": {
+      "source": "User-provided leaderboard screenshots; no live query or submission receipt",
+      "sha256": "031dd12360f156d6c12294e24e39e9f9307afa4fcb793542e484074612151cac"
+    },
+    "error_budget_from_recorded_aggregates.json": {
+      "source": "Algebraic decomposition of preserved internal 2k aggregate reports; per-case server reconstruction pending",
+      "sha256": "2c593fda3513b6f5b288ad72ae13ffd35d57ce5a780661cef009c6df873de12c"
     }
   }
 }

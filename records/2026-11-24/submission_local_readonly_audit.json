@@ -1,0 +1,34 @@
+{
+  "xlsx": "/Users/lijiaji/Downloads/submission_top3.xlsx",
+  "bytes": 2019786,
+  "sha256": "77f205be74c06c2c2d8abb281e4e58c4b39225f04b222acc8ff1829f004d8a64",
+  "rows": 50000,
+  "item_list_lengths": {
+    "3": 50000
+  },
+  "local_format_pass": true,
+  "official_prediction_match_verified": false,
+  "manifest_hash_match_verified": true,
+  "submission_receipt_verified": false,
+  "score_denominator": {
+    "documented_count": 50000,
+    "checks": {
+      "top1": {
+        "reported_percent": "70.8750",
+        "implied_correct": "70875/2",
+        "integer_correct_count": false
+      },
+      "top3": {
+        "reported_percent": "82.9300",
+        "implied_correct": "41465",
+        "integer_correct_count": true
+      }
+    },
+    "needs_organizer_clarification": true,
+    "conclusion": "Screenshot scores alone do not establish actual scored subset, weighting, or denominator; do not infer 40k as fact"
+  },
+  "github_workbook_hash_match_verified": true,
+  "github_submission_commit": "68e93bbbf696b772c6d9d87e06d8c89c272240f5",
+  "manifest_path": "submissions/2026-11-24/submission_top3.manifest.json",
+  "note": "Matching exported manifest verifies file identity; per-query server prediction comparison still pending remote audit"
+}

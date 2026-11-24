@@ -5,7 +5,7 @@
 - [训练数据、开发集与训练入口方法](方法记录-训练数据与开发集.md)
 - [Docs 方法与进展记录（2026-11-04）](https://docs.corp.kuaishou.com/d/home/fcAD9w17I0oHAJMzki28S8xM4)
 
-截至 **2026-11-24**：正式50k测试集的七卡召回与精排已完成，用户确认两阶段各 **50,000条结果**、后台任务Done。冻结方案为 **100-query Pilot embedding + checkpoint-500 +动态Top-25**。XLSX导出文件及manifest尚待回读核验，DataAgent校验、正式提交和主办方Top1/Top3成绩尚未确认。完整实验指标与证据见 [本轮结果记录](进展更新-2026-11-24-正式50k推理完成.md)，执行入口见 [正式推理说明](scripts/OFFICIAL_SUBMISSION.md)。
+截至 **2026-11-24**：首次正式50k提交已由用户回报成绩：**Top1 70.8750%、Top3 82.9300%，截图排名13/19**。下载XLSX与仓库文件、导出manifest哈希一致，50k行格式回读通过。现已准备CPU提交溯源及内部2k逐条错误分解，执行见 [提交后审计](scripts/POST_SUBMISSION_AUDIT.md)。服务器逐条预测比对及评分分母仍待核实；保留100-query Pilot embedding + checkpoint-500 +动态Top-25方案。完整实验记录见 [本轮结果](进展更新-2026-11-24-正式50k推理完成.md)。
 
 - [本次验证集进展详情](进展更新-2026-11-04.md)
 - [验证集审计和推理进展](进展更新-2026-11-05.md)

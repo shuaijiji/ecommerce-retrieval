@@ -1,0 +1,14 @@
+{
+  "recorded_at": "2026-11-24 Asia/Shanghai",
+  "source": "User-provided leaderboard screenshots in conversation",
+  "rank": 13,
+  "participants": 19,
+  "top1_percent": "70.8750",
+  "top3_percent": "82.9300",
+  "leader_top1_percent": "83.1125",
+  "leader_top3_percent": "93.0100",
+  "live_leaderboard_verified": false,
+  "submitted_file_receipt_verified": false,
+  "xlsx_sha256": "77f205be74c06c2c2d8abb281e4e58c4b39225f04b222acc8ff1829f004d8a64",
+  "score_denominator_confirmed": false
+}
