@@ -43,6 +43,10 @@
     "error_budget_from_recorded_aggregates.json": {
       "source": "Algebraic decomposition of preserved internal 2k aggregate reports; per-case server reconstruction pending",
       "sha256": "2c593fda3513b6f5b288ad72ae13ffd35d57ce5a780661cef009c6df873de12c"
+    },
+    "error_budget_server_reported.json": {
+      "source": "User-pasted server summary.json from error_budget_after_submission_v1; report payload preserved, no direct server access",
+      "sha256": "0f37efcc36c8e26b66ac0ae90824d828677018e1f2326d06e589a50004a7b0d0"
     }
   }
 }

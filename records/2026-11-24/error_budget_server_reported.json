@@ -1,0 +1,243 @@
+{
+  "arms": {
+    "pilot100": {
+      "all_2000": {
+        "count": 2000,
+        "top1": 0.495,
+        "top3": 0.6135,
+        "error_count": 1010,
+        "error_buckets": {
+          "retrieval_miss_top100": {
+            "count": 281,
+            "fraction_of_all": 0.1405,
+            "fraction_of_errors": 0.27821782178217824
+          },
+          "truncated_between_top100_and_top25": {
+            "count": 200,
+            "fraction_of_all": 0.1,
+            "fraction_of_errors": 0.19801980198019803
+          },
+          "not_expanded_truth_only_in_top25_tail": {
+            "count": 107,
+            "fraction_of_all": 0.0535,
+            "fraction_of_errors": 0.10594059405940594
+          },
+          "rerank_truth_at_rank2_or3": {
+            "count": 237,
+            "fraction_of_all": 0.1185,
+            "fraction_of_errors": 0.23465346534653464
+          },
+          "rerank_truth_at_rank4_or_later": {
+            "count": 185,
+            "fraction_of_all": 0.0925,
+            "fraction_of_errors": 0.18316831683168316
+          }
+        },
+        "recall_top100": 0.8595,
+        "recall_top25": 0.7595,
+        "current_scored_candidate_recall": 0.706,
+        "perfect_reranker_on_current_scored_candidates_upper_bound": 0.706,
+        "expanded_count": 503
+      },
+      "calibration": {
+        "count": 1000,
+        "top1": 0.492,
+        "top3": 0.611,
+        "error_count": 508,
+        "error_buckets": {
+          "retrieval_miss_top100": {
+            "count": 148,
+            "fraction_of_all": 0.148,
+            "fraction_of_errors": 0.29133858267716534
+          },
+          "truncated_between_top100_and_top25": {
+            "count": 96,
+            "fraction_of_all": 0.096,
+            "fraction_of_errors": 0.1889763779527559
+          },
+          "not_expanded_truth_only_in_top25_tail": {
+            "count": 58,
+            "fraction_of_all": 0.058,
+            "fraction_of_errors": 0.1141732283464567
+          },
+          "rerank_truth_at_rank2_or3": {
+            "count": 119,
+            "fraction_of_all": 0.119,
+            "fraction_of_errors": 0.234251968503937
+          },
+          "rerank_truth_at_rank4_or_later": {
+            "count": 87,
+            "fraction_of_all": 0.087,
+            "fraction_of_errors": 0.17125984251968504
+          }
+        },
+        "recall_top100": 0.852,
+        "recall_top25": 0.756,
+        "current_scored_candidate_recall": 0.698,
+        "perfect_reranker_on_current_scored_candidates_upper_bound": 0.698,
+        "expanded_count": 251
+      },
+      "test": {
+        "count": 1000,
+        "top1": 0.498,
+        "top3": 0.616,
+        "error_count": 502,
+        "error_buckets": {
+          "retrieval_miss_top100": {
+            "count": 133,
+            "fraction_of_all": 0.133,
+            "fraction_of_errors": 0.2649402390438247
+          },
+          "truncated_between_top100_and_top25": {
+            "count": 104,
+            "fraction_of_all": 0.104,
+            "fraction_of_errors": 0.20717131474103587
+          },
+          "not_expanded_truth_only_in_top25_tail": {
+            "count": 49,
+            "fraction_of_all": 0.049,
+            "fraction_of_errors": 0.09760956175298804
+          },
+          "rerank_truth_at_rank2_or3": {
+            "count": 118,
+            "fraction_of_all": 0.118,
+            "fraction_of_errors": 0.2350597609561753
+          },
+          "rerank_truth_at_rank4_or_later": {
+            "count": 98,
+            "fraction_of_all": 0.098,
+            "fraction_of_errors": 0.1952191235059761
+          }
+        },
+        "recall_top100": 0.867,
+        "recall_top25": 0.763,
+        "current_scored_candidate_recall": 0.714,
+        "perfect_reranker_on_current_scored_candidates_upper_bound": 0.714,
+        "expanded_count": 252
+      }
+    },
+    "train1k": {
+      "all_2000": {
+        "count": 2000,
+        "top1": 0.5015,
+        "top3": 0.622,
+        "error_count": 997,
+        "error_buckets": {
+          "retrieval_miss_top100": {
+            "count": 258,
+            "fraction_of_all": 0.129,
+            "fraction_of_errors": 0.2587763289869609
+          },
+          "truncated_between_top100_and_top25": {
+            "count": 185,
+            "fraction_of_all": 0.0925,
+            "fraction_of_errors": 0.1855566700100301
+          },
+          "not_expanded_truth_only_in_top25_tail": {
+            "count": 96,
+            "fraction_of_all": 0.048,
+            "fraction_of_errors": 0.09628886659979939
+          },
+          "rerank_truth_at_rank2_or3": {
+            "count": 241,
+            "fraction_of_all": 0.1205,
+            "fraction_of_errors": 0.24172517552657974
+          },
+          "rerank_truth_at_rank4_or_later": {
+            "count": 217,
+            "fraction_of_all": 0.1085,
+            "fraction_of_errors": 0.2176529588766299
+          }
+        },
+        "recall_top100": 0.871,
+        "recall_top25": 0.7785,
+        "current_scored_candidate_recall": 0.7305,
+        "perfect_reranker_on_current_scored_candidates_upper_bound": 0.7305,
+        "expanded_count": 490
+      },
+      "calibration": {
+        "count": 1000,
+        "top1": 0.501,
+        "top3": 0.62,
+        "error_count": 499,
+        "error_buckets": {
+          "retrieval_miss_top100": {
+            "count": 142,
+            "fraction_of_all": 0.142,
+            "fraction_of_errors": 0.2845691382765531
+          },
+          "truncated_between_top100_and_top25": {
+            "count": 90,
+            "fraction_of_all": 0.09,
+            "fraction_of_errors": 0.18036072144288579
+          },
+          "not_expanded_truth_only_in_top25_tail": {
+            "count": 40,
+            "fraction_of_all": 0.04,
+            "fraction_of_errors": 0.08016032064128256
+          },
+          "rerank_truth_at_rank2_or3": {
+            "count": 119,
+            "fraction_of_all": 0.119,
+            "fraction_of_errors": 0.23847695390781562
+          },
+          "rerank_truth_at_rank4_or_later": {
+            "count": 108,
+            "fraction_of_all": 0.108,
+            "fraction_of_errors": 0.21643286573146292
+          }
+        },
+        "recall_top100": 0.858,
+        "recall_top25": 0.768,
+        "current_scored_candidate_recall": 0.728,
+        "perfect_reranker_on_current_scored_candidates_upper_bound": 0.728,
+        "expanded_count": 251
+      },
+      "test": {
+        "count": 1000,
+        "top1": 0.502,
+        "top3": 0.624,
+        "error_count": 498,
+        "error_buckets": {
+          "retrieval_miss_top100": {
+            "count": 116,
+            "fraction_of_all": 0.116,
+            "fraction_of_errors": 0.23293172690763053
+          },
+          "truncated_between_top100_and_top25": {
+            "count": 95,
+            "fraction_of_all": 0.095,
+            "fraction_of_errors": 0.19076305220883535
+          },
+          "not_expanded_truth_only_in_top25_tail": {
+            "count": 56,
+            "fraction_of_all": 0.056,
+            "fraction_of_errors": 0.11244979919678715
+          },
+          "rerank_truth_at_rank2_or3": {
+            "count": 122,
+            "fraction_of_all": 0.122,
+            "fraction_of_errors": 0.24497991967871485
+          },
+          "rerank_truth_at_rank4_or_later": {
+            "count": 109,
+            "fraction_of_all": 0.109,
+            "fraction_of_errors": 0.21887550200803213
+          }
+        },
+        "recall_top100": 0.884,
+        "recall_top25": 0.789,
+        "current_scored_candidate_recall": 0.733,
+        "perfect_reranker_on_current_scored_candidates_upper_bound": 0.733,
+        "expanded_count": 239
+      }
+    }
+  },
+  "analysis_only": true,
+  "extra_gpu_inference": false,
+  "development_set_reused": true,
+  "independent_confirmation_required_for_future_model_changes": true,
+  "label_sha256": "0249d6fb682a9cdc545f5fab8e708e8fda959d8a4fefb0502da0af68335c68b7",
+  "source_report_sha256": "45f120e6fd175bcd91fdf82f9db9142f5e4555a4f8e611745cbdf6fb1a28910f",
+  "interpretation": "Mutually exclusive Top1 error buckets; distinguish retrieval coverage, truncation, skipped expansion, and scoring failures. No automatic training decision."
+}
