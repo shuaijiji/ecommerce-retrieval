@@ -1,0 +1,36 @@
+{
+  "recorded_at": "2026-11-24 Asia/Shanghai",
+  "source_policy": "Attached reports extracted from pasted JSON; non-attached scalar reports transcribed from user messages. No server access or independent verification.",
+  "files": {
+    "retriever_rerank_top10_2000.json": {
+      "source": "user pasted attachment",
+      "note": "Preserved report payload",
+      "sha256": "ab4c29bf21404fd121bd79990ac6ae4ec396203b86543ba2531159fff07c8f2c"
+    },
+    "retriever_dynamic_top25_test1000.json": {
+      "source": "user pasted attachment",
+      "note": "Preserved report payload",
+      "sha256": "45f120e6fd175bcd91fdf82f9db9142f5e4555a4f8e611745cbdf6fb1a28910f"
+    },
+    "dataset_inventory_before_test_download.json": {
+      "source": "user pasted attachment",
+      "note": "Preserved report payload",
+      "sha256": "9d384de9756c668a260e3362d6e701fcf9d789155eb0035bfd73a025f9a3472d"
+    },
+    "official_100_query_pilot.json": {
+      "source": "user terminal report in chat",
+      "note": "Recorded reported values/status; not a downloaded remote artifact",
+      "sha256": "6bfa9c065b59cc85ea3c7fb951614b0c5072cfe34461435bd7a133e93d1b5597"
+    },
+    "real_incremental_100_query_pilot.json": {
+      "source": "user terminal report in chat",
+      "note": "Recorded reported values/status; not a downloaded remote artifact",
+      "sha256": "03b1b268a1729d7b2df5ea0890bf37903d0aedb941ce31942c108d3ee3143511"
+    },
+    "official_full_completion_status.json": {
+      "source": "user terminal report in chat",
+      "note": "Recorded reported values/status; not a downloaded remote artifact",
+      "sha256": "aa7c10d0a14e2994d1489b4e4500110d826c4f74eea8f0084f78a2365574860d"
+    }
+  }
+}

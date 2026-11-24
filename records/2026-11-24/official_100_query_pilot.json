@@ -1,0 +1,14 @@
+{
+  "count": 100,
+  "expanded_count": 32,
+  "expanded_rate": 0.32,
+  "mean_candidates": 21.07,
+  "mean_retrieval_seconds": 0.3114710770873353,
+  "mean_rerank_seconds": 2.5877394220931453,
+  "peak_memory_gib": 4.637351989746094,
+  "estimated_full_hours_excluding_initialization_and_export": 5.7524017840882555,
+  "estimate_warning": "linear estimate from summed per-query times; actual multi-GPU wall time and I/O may differ",
+  "scores_finite_and_complete": true,
+  "accuracy_computed": false,
+  "stage_wall_seconds": 93.51106391195208
+}

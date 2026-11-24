@@ -1,0 +1,160 @@
+{
+  "queries": 2000,
+  "arms": {
+    "original": {
+      "count": 2000,
+      "candidate_hits": 1270,
+      "candidate_recall": 0.635,
+      "correct": 932,
+      "system_top1": 0.466,
+      "candidate_rerank_accuracy": 0.7338582677165354,
+      "system_mrr": 0.5246891108891113,
+      "system_ndcg": 0.5516073907212135,
+      "mean_seconds_per_video": 1.4836643887602259,
+      "prediction_sha256": "aa56528126838611e5c286186a8206bcfab9700c7dcfafd1dec77e5c1f61114f",
+      "system_top3": 0.5755,
+      "correct_top3": 1151,
+      "candidate_sha256": "3922dd3e21d33b0a8797cb56efff5c3fdef8cce99c28661cc6a1519176660e88",
+      "mean_candidates": 15.098
+    },
+    "pilot100": {
+      "count": 2000,
+      "candidate_hits": 1345,
+      "candidate_recall": 0.6725,
+      "correct": 969,
+      "system_top1": 0.4845,
+      "candidate_rerank_accuracy": 0.7204460966542751,
+      "system_mrr": 0.5475492660117665,
+      "system_ndcg": 0.5778273164226446,
+      "mean_seconds_per_video": 1.4296264076768421,
+      "prediction_sha256": "3ff86310e1f9bd23c07259e33123094bee37863558fba916d2e2cba6016595d5",
+      "system_top3": 0.6,
+      "correct_top3": 1200,
+      "candidate_sha256": "a148c7da6e4a41ed19373a8413c8d9c3bb3946deb57d03f2f31cd57c0e9f321b",
+      "mean_candidates": 14.7065
+    },
+    "train1k": {
+      "count": 2000,
+      "candidate_hits": 1396,
+      "candidate_recall": 0.698,
+      "correct": 980,
+      "system_top1": 0.49,
+      "candidate_rerank_accuracy": 0.7020057306590258,
+      "system_mrr": 0.55779174991675,
+      "system_ndcg": 0.5916555968405598,
+      "mean_seconds_per_video": 1.4749383918344974,
+      "prediction_sha256": "5772a4f4df6f6c734a8f09446ca256f91d56306f7dc94f88ecea498997a40a8b",
+      "system_top3": 0.609,
+      "correct_top3": 1218,
+      "candidate_sha256": "34fbaf3a5874f4b446f84e1c4995b3012d75ca961187c234d9caa6ceaa8ae7a9",
+      "mean_candidates": 15.3155
+    }
+  },
+  "paired_comparisons": {
+    "pilot100_vs_original": {
+      "top1": {
+        "baseline": 0.466,
+        "trained": 0.4845,
+        "gained": 53,
+        "lost": 16,
+        "net": 37,
+        "paired_p_two_sided": 9.095063055186201e-06
+      },
+      "top3": {
+        "baseline": 0.5755,
+        "trained": 0.6,
+        "gained": 69,
+        "lost": 20,
+        "net": 49,
+        "paired_p_two_sided": 1.7769640600713887e-07
+      }
+    },
+    "train1k_vs_original": {
+      "top1": {
+        "baseline": 0.466,
+        "trained": 0.49,
+        "gained": 142,
+        "lost": 94,
+        "net": 48,
+        "paired_p_two_sided": 0.002150638292500517
+      },
+      "top3": {
+        "baseline": 0.5755,
+        "trained": 0.609,
+        "gained": 210,
+        "lost": 143,
+        "net": 67,
+        "paired_p_two_sided": 0.0004277394876756057
+      }
+    },
+    "train1k_vs_pilot100": {
+      "top1": {
+        "baseline": 0.4845,
+        "trained": 0.49,
+        "gained": 108,
+        "lost": 97,
+        "net": 11,
+        "paired_p_two_sided": 0.48500031468220856
+      },
+      "top3": {
+        "baseline": 0.6,
+        "trained": 0.609,
+        "gained": 161,
+        "lost": 143,
+        "net": 18,
+        "paired_p_two_sided": 0.3295590121019661
+      }
+    }
+  },
+  "reranker_protocol": {
+    "model": "/code/ecommerce-retrieval/artifacts/train_v0/reranker_listwise_train_v1_merged/checkpoint-500-merged",
+    "model_config_sha256": "bf59c165feb49f044af5fa6f94081909a8c6442205e384cdeaac762961401778",
+    "model_weights_sha256": {
+      "model.safetensors": "544e4265f647adea1452de7648651c3f9961126a26eb6f16b789654664e09e86"
+    },
+    "upstream_sha256": "7f55d5598d0e93585dcd9de7cad522756bb9eed7b1e783a66f8d53a1f7f47e6c",
+    "runner_sha256": "4ef108b4faacf24901589eb063102290e8a6d0e518121a65776a957da211a03b",
+    "preprocessing_sha256": "7efe65caee61db526538b7468fa04f718c68c78b7a849dcd496b72a0a47baaec",
+    "photo_sha256": "c3eb077cac5abc68d62646b155ce75a4cf2bf39b3ad55bc535242df2fcdfdba5",
+    "item_sha256": "8ef28d9656f1eb3fedf25e43694edd33034ac85fe4eff8e5aa23790927f357c8",
+    "batch_size": 4,
+    "seed": 20261105,
+    "image_size": 512,
+    "instruction": "判断候选商品是否为视频主要讲解的同一款商品。结合视频画面和文本与商品主图及标题，区分品牌、型号、外观和规格；仅同类别或配件相关不足以判定为同款。",
+    "max_length": 10240,
+    "text_budgets": [
+      [
+        "photo_caption",
+        "视频描述",
+        500
+      ],
+      [
+        "photo_title",
+        "视频标题",
+        150
+      ],
+      [
+        "photo_text",
+        "视频文本",
+        200
+      ],
+      [
+        "photo_ocr",
+        "画面文字",
+        700
+      ],
+      [
+        "photo_asr",
+        "语音文本",
+        500
+      ]
+    ],
+    "title_chars": 500,
+    "torch": "2.8.0+cu126",
+    "transformers": "4.57.3"
+  },
+  "selection_rule": "Top1 primary; Top3 secondary; no automatic promotion",
+  "official_10k_used": false,
+  "dynamic_top25_used": false,
+  "label_sha256": "0249d6fb682a9cdc545f5fab8e708e8fda959d8a4fefb0502da0af68335c68b7"
+}

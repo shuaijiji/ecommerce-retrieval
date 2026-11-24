@@ -1,0 +1,220 @@
+{
+  "search_root": "/code/ecommerce-retrieval/data",
+  "expected_official_video_count": 50000,
+  "dataset_roots": [
+    {
+      "data_root": "/code/ecommerce-retrieval/data/eval/test_small_package",
+      "photos": {
+        "rows": 10000,
+        "unique_ids": 10000,
+        "duplicate_ids": 0,
+        "invalid_ids": 0,
+        "missing_media_fields": 0,
+        "sample_media": [
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/192498359680_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/192498359680_frame_2.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/192498359680_frame_3.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/192498359680_frame_4.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/117821978294_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/118935629549_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/196901512109_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/204714236505_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/204714236505_frame_2.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/photo_frames/204714236505_frame_3.jpg",
+            "exists": true
+          }
+        ]
+      },
+      "items": {
+        "rows": 20000,
+        "unique_ids": 20000,
+        "duplicate_ids": 0,
+        "invalid_ids": 0,
+        "missing_media_fields": 0,
+        "sample_media": [
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/20033755119218.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/26868248295283.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/24276313096157.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/25518649100316.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/26921593042938.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/26845345414269.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/26227039077104.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/4069980375766.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/26246791711465.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/eval/test_small_package/item_images/26554208179536.jpg",
+            "exists": true
+          }
+        ]
+      },
+      "label_files_present": [
+        "label.json",
+        "label.jsonl"
+      ],
+      "matches_expected_video_count_only": false,
+      "official_dataset_identity_verified": false
+    },
+    {
+      "data_root": "/code/ecommerce-retrieval/data/train/all_data_package",
+      "photos": {
+        "rows": 999351,
+        "unique_ids": 999351,
+        "duplicate_ids": 0,
+        "invalid_ids": 0,
+        "missing_media_fields": 0,
+        "sample_media": [
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100002870238_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088041425_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088041425_frame_2.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088041425_frame_3.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088041425_frame_4.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088041425_frame_5.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088041425_frame_6.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100003817025_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100088119455_frame_1.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/photo_frames/100004856202_frame_1.jpg",
+            "exists": true
+          }
+        ]
+      },
+      "items": {
+        "rows": 777017,
+        "unique_ids": 777017,
+        "duplicate_ids": 0,
+        "invalid_ids": 0,
+        "missing_media_fields": 1,
+        "sample_media": [
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/3855897081003.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/24795550162809.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/20015144478461.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/4708149780436.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/15177137270963.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/26668619270342.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/4916881913592.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/25894812914828.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/4172707435297.jpg",
+            "exists": true
+          },
+          {
+            "path": "/code/ecommerce-retrieval/data/train/all_data_package/item_images/22137818001830.jpg",
+            "exists": true
+          }
+        ]
+      },
+      "label_files_present": [
+        "label.jsonl"
+      ],
+      "matches_expected_video_count_only": false,
+      "official_dataset_identity_verified": false
+    }
+  ],
+  "limitation": "counts and sample path existence only; no media decoding, identity certification, download or GPU inference"
+}

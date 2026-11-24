@@ -1,5 +1,8 @@
 # 正式50k推理与提交文件
 
+2026-11-24状态：用户已确认正式50k召回与精排JSON各50,000条、后台任务Done。XLSX及manifest、full_summary仍待回读；未确认DataAgent校验或正式提交。结果见 [本轮实验记录](../进展更新-2026-11-24-正式50k推理完成.md)。以下保留执行说明供复现。
+
+
 ## 数据与冻结方案
 
 用户已从主办方的 `viewfs://hadoop-lt-cluster/home/mmu/wulei/data/competition/test_data.zip` 下载并解压，盘点目录 `/code/ecommerce-retrieval/data/test/extracted/test_large_package`：50,000个唯一视频、100,000个唯一商品，无label，无重复/非法ID、无缺少媒体字段，抽样媒体路径存在。

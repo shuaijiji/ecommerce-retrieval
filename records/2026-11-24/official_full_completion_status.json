@@ -1,0 +1,26 @@
+{
+  "as_of": "2026-11-24",
+  "timezone": "Asia/Shanghai",
+  "evidence_source": "User terminal output pasted into this chat; no direct SSH/server inspection",
+  "data_root": "/code/ecommerce-retrieval/data/test/extracted/test_large_package",
+  "output_root": "/code/ecommerce-retrieval/artifacts/official_submission_v1",
+  "expected_photos": 50000,
+  "expected_items": 100000,
+  "retrieval_files_reported": 50000,
+  "prediction_files_reported": 50000,
+  "retrieval_worker_completion_reported": true,
+  "background_job_done_reported": true,
+  "xlsx_export_verified": false,
+  "xlsx_sha256": null,
+  "full_summary_received": false,
+  "dataagent_validation_confirmed": false,
+  "submission_to_organizer_confirmed": false,
+  "official_top1": null,
+  "official_top3": null,
+  "official_rank": null,
+  "pending": [
+    "Read submission_top3.manifest.json and verify XLSX presence/hash/size",
+    "Read full_summary.json and full.log for actual full-run metrics",
+    "Validate XLSX in DataAgent, then submit file and participant ID via organizer channel"
+  ]
+}
