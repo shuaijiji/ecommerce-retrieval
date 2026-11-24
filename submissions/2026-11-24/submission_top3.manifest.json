@@ -1,0 +1,9 @@
+{
+  "rows": 50000,
+  "xlsx_sha256": "77f205be74c06c2c2d8abb281e4e58c4b39225f04b222acc8ff1829f004d8a64",
+  "bytes": 2019786,
+  "plan_sha256": "da4fbdcb8604f7d99ce718d640abc16730602baa23c073b003094fd2d0d4cfe8",
+  "local_format_validation": true,
+  "dataagent_format_validation": false,
+  "submitted_to_organizer": false
+}
