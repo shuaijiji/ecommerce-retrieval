@@ -8,6 +8,10 @@
     "reranker_text_ablation_reported.json": {
       "source": "User-pasted completed comparison.json; values transcribed and integer hit deltas reconciled, no direct server access",
       "sha256": "e727f6147266b22c213606d2467b05a7be6bc70b5ddfc5229847b96cbdd56a3c"
+    },
+    "changed_text_summary_reported.json": {
+      "source": "JSON payload extracted from user-pasted server output; no direct server access",
+      "sha256": "bb4841c452c12e6791c8539060c92bd063f0c03652df1931c3d3934fa64e85b8"
     }
   }
 }

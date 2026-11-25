@@ -1,0 +1,203 @@
+{
+  "subsets": {
+    "all_2000": {
+      "all": {
+        "count": 2000,
+        "top1": {
+          "baseline": 0.495,
+          "trained": 0.4945,
+          "gained": 1,
+          "lost": 2,
+          "net": -1,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.614,
+          "trained": 0.614,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 77
+      },
+      "changed": {
+        "count": 208,
+        "top1": {
+          "baseline": 0.5144230769230769,
+          "trained": 0.5096153846153846,
+          "gained": 1,
+          "lost": 2,
+          "net": -1,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.5721153846153846,
+          "trained": 0.5721153846153846,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 77
+      },
+      "unchanged": {
+        "count": 1792,
+        "top1": {
+          "baseline": 0.4927455357142857,
+          "trained": 0.4927455357142857,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.6188616071428571,
+          "trained": 0.6188616071428571,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 0
+      }
+    },
+    "calibration": {
+      "all": {
+        "count": 1000,
+        "top1": {
+          "baseline": 0.492,
+          "trained": 0.493,
+          "gained": 1,
+          "lost": 0,
+          "net": 1,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.612,
+          "trained": 0.612,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 36
+      },
+      "changed": {
+        "count": 104,
+        "top1": {
+          "baseline": 0.5096153846153846,
+          "trained": 0.5192307692307693,
+          "gained": 1,
+          "lost": 0,
+          "net": 1,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.6057692307692307,
+          "trained": 0.6057692307692307,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 36
+      },
+      "unchanged": {
+        "count": 896,
+        "top1": {
+          "baseline": 0.48995535714285715,
+          "trained": 0.48995535714285715,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.6127232142857143,
+          "trained": 0.6127232142857143,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 0
+      }
+    },
+    "test": {
+      "all": {
+        "count": 1000,
+        "top1": {
+          "baseline": 0.498,
+          "trained": 0.496,
+          "gained": 0,
+          "lost": 2,
+          "net": -2,
+          "paired_p_two_sided": 0.5
+        },
+        "top3": {
+          "baseline": 0.616,
+          "trained": 0.616,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 41
+      },
+      "changed": {
+        "count": 104,
+        "top1": {
+          "baseline": 0.5192307692307693,
+          "trained": 0.5,
+          "gained": 0,
+          "lost": 2,
+          "net": -2,
+          "paired_p_two_sided": 0.5
+        },
+        "top3": {
+          "baseline": 0.5384615384615384,
+          "trained": 0.5384615384615384,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 41
+      },
+      "unchanged": {
+        "count": 896,
+        "top1": {
+          "baseline": 0.4955357142857143,
+          "trained": 0.4955357142857143,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3": {
+          "baseline": 0.625,
+          "trained": 0.625,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1.0
+        },
+        "top3_order_changed": 0
+      }
+    }
+  },
+  "changed_count": 208,
+  "unchanged_count": 1792,
+  "unchanged_text_top1_prediction_changes": [],
+  "unchanged_text_top3_order_changes": [],
+  "interpretation": "Separate treatment changes from prediction drift on unchanged text. Empty subsets have null metrics. Reused development set; no model promotion.",
+  "source_hashes": {
+    "plan.json": "53e471540bacca60a0ab1ba28c54845947cc470ecb267fee0d41ef6e1e557b83",
+    "comparison.json": "cf10ad8905b5d2040aa9a136bc2c50add2230438762980cd1b9470c4dea4321d",
+    "paired_cases.jsonl": "42ab631d6342ce7b351ef983be46b773b787ae5593f5db7e89f18be765d2ad42",
+    "text_preview.jsonl": "87db24b2b4a6dbc79e283f34786f8b90334f564e293d378add3b8bf3051db368",
+    "split.json": "e9dc567d145205d8b5f8b4b43401fe4de62e9b68b6915fdec40ff54ef8eab16d"
+  },
+  "extra_gpu_inference": false
+}
