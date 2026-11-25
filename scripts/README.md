@@ -1,5 +1,8 @@
 # 已验证脚本
 
+2026-11-25：[8B领域排序训练Pilot](RERANKER_8B_LORA_PILOT.md)，复用已审计数据，400 train/100 monitor，5步功能检查后50步多卡LoRA，固定checkpoint导出与三模型同候选评测。
+
+
 2026-11-25：[官方8B精排对照](RERANKER_8B_COMPARISON.md)，固定修订下载，先100条功能Pilot再多卡2k，只替换模型，复用微调2B原始组结果。
 
 

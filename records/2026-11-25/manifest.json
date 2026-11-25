@@ -12,6 +12,10 @@
     "changed_text_summary_reported.json": {
       "source": "JSON payload extracted from user-pasted server output; no direct server access",
       "sha256": "bb4841c452c12e6791c8539060c92bd063f0c03652df1931c3d3934fa64e85b8"
+    },
+    "reranker_base8b_comparison_reported.json": {
+      "source": "Transcribed user terminal comparison.json; integer hit deltas reconciled, no direct server access",
+      "sha256": "901bc90e5bdd7a14e569eb5624f621cab33274935e4a01002457ac42744491ac"
     }
   }
 }

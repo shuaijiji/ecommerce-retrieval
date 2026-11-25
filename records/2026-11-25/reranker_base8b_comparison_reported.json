@@ -1,0 +1,92 @@
+{
+  "objective": "official base 8B vs domain-fine-tuned 2B on identical scored candidates and original text",
+  "metrics": {
+    "calibration": {
+      "top1": {
+        "baseline": 0.492,
+        "trained": 0.468,
+        "gained": 37,
+        "lost": 61,
+        "net": -24,
+        "paired_p_two_sided": 0.019690184799846844
+      },
+      "top3": {
+        "baseline": 0.612,
+        "trained": 0.598,
+        "gained": 26,
+        "lost": 40,
+        "net": -14,
+        "paired_p_two_sided": 0.1088569644097161
+      },
+      "count": 1000,
+      "candidate_recall": 0.698,
+      "baseline_accuracy_given_candidate_hit": 0.7048710601719198,
+      "challenger_accuracy_given_candidate_hit": 0.6704871060171921
+    },
+    "test": {
+      "top1": {
+        "baseline": 0.498,
+        "trained": 0.488,
+        "gained": 41,
+        "lost": 51,
+        "net": -10,
+        "paired_p_two_sided": 0.3481412903192065
+      },
+      "top3": {
+        "baseline": 0.616,
+        "trained": 0.625,
+        "gained": 41,
+        "lost": 32,
+        "net": 9,
+        "paired_p_two_sided": 0.3491818381705883
+      },
+      "count": 1000,
+      "candidate_recall": 0.714,
+      "baseline_accuracy_given_candidate_hit": 0.6974789915966387,
+      "challenger_accuracy_given_candidate_hit": 0.6834733893557423
+    },
+    "all_2000": {
+      "top1": {
+        "baseline": 0.495,
+        "trained": 0.478,
+        "gained": 78,
+        "lost": 112,
+        "net": -34,
+        "paired_p_two_sided": 0.016435856993481657
+      },
+      "top3": {
+        "baseline": 0.614,
+        "trained": 0.6115,
+        "gained": 67,
+        "lost": 72,
+        "net": -5,
+        "paired_p_two_sided": 0.7345393172729974
+      },
+      "count": 2000,
+      "candidate_recall": 0.706,
+      "baseline_accuracy_given_candidate_hit": 0.7011331444759207,
+      "challenger_accuracy_given_candidate_hit": 0.6770538243626062
+    }
+  },
+  "engineering": {
+    "trained2b": {
+      "mean_seconds_per_query": 2.0473977306718005,
+      "peak_memory_gib": 4.651547431945801
+    },
+    "base8b": {
+      "mean_seconds_per_query": 2.6481382149241397,
+      "peak_memory_gib": 16.41355276107788
+    }
+  },
+  "confounding": "model size AND domain fine-tuning differ; not a pure parameter-scaling experiment",
+  "plan_sha256": "0ba8268e0133b3a4d0d791a33135df1df48ae6e580e9a69a9878a9d4f8c46ab7",
+  "prediction_sha256": {
+    "trained2b": "f5dc0de3e6e0ded84b51b23b199d71cf6615625111888e659204d51097f4fc0d",
+    "base8b": "94d0bf9d370e91e3b88242e1f8ac1ddeae81f89c0989b6bf4038f72a75fd6625"
+  },
+  "development_set_reused": true,
+  "independent_confirmation_required": true,
+  "automatic_promotion": false,
+  "official_test_used": false,
+  "interpretation": "Conditional reranker diagnostic on unchanged candidate coverage; no new recall or dynamic-route fitting."
+}
