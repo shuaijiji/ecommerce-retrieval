@@ -1,0 +1,55 @@
+{
+  "source": "Transcribed user terminal summary for cached_rank_fusion_diagnostic_v1; not directly downloaded",
+  "selected_weight": 0.0,
+  "weights": [
+    0,
+    0.1,
+    0.25,
+    0.5,
+    1
+  ],
+  "rrf_k": 60,
+  "calibration": {
+    "0": {
+      "top1": 0.492,
+      "top3": 0.611
+    },
+    "0.1": {
+      "top1": 0.467,
+      "top3": 0.603
+    },
+    "0.25": {
+      "top1": 0.426,
+      "top3": 0.574
+    },
+    "0.5": {
+      "top1": 0.399,
+      "top3": 0.53
+    },
+    "1": {
+      "top1": 0.333,
+      "top3": 0.48
+    }
+  },
+  "test": {
+    "top1": {
+      "baseline": 0.498,
+      "trained": 0.498,
+      "gained": 0,
+      "lost": 0,
+      "net": 0,
+      "paired_p_two_sided": 1
+    },
+    "top3": {
+      "baseline": 0.616,
+      "trained": 0.616,
+      "gained": 0,
+      "lost": 0,
+      "net": 0,
+      "paired_p_two_sided": 1
+    }
+  },
+  "development_set_reused": true,
+  "official_test_used": false,
+  "decision": "Stop rank-fusion weight search; retain frozen submission"
+}

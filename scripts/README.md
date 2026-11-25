@@ -1,5 +1,8 @@
 # 已验证脚本
 
+2026-11-25：新增 [精排文本去重A/B](RERANKER_TEXT_ABLATION.md)，固定模型/候选/路由，仅比较原始文本与OCR/ASR完全重复段去重，支持空闲多卡。
+
+
 首次正式提交后的CPU溯源与内部错误分解：[POST_SUBMISSION_AUDIT.md](POST_SUBMISSION_AUDIT.md)。新增审计入口，不修改冻结推理代码。
 
 
