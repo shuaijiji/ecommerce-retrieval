@@ -37,6 +37,7 @@ class Reranker8BLoraTest(unittest.TestCase):
         for phase,steps in [('smoke','5'),('train','50')]:
             cmd=training_command(plan,phase)
             self.assertEqual(cmd[cmd.index('--model')+1],'/official8b')
+            self.assertEqual(cmd[cmd.index('--model_type')+1],'qwen3_vl_reranker')
             self.assertEqual(cmd[cmd.index('--max_steps')+1],steps)
             self.assertEqual(cmd[cmd.index('--strict')+1],'true')
             self.assertNotIn('--adapters',cmd)

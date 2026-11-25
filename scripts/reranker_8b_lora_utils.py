@@ -46,7 +46,9 @@ def training_command(plan,phase):
         raise ValueError('unknown training phase')
     out=Path(plan['output']);smoke=phase=='smoke'
     steps=5 if smoke else STEPS
-    return ['swift','sft','--model',plan['model'],'--task_type','generative_reranker',
+    # Local checkpoint architecture is shared by chat, embedding and reranker registrations.
+    # Pin Swift's reranker loader/template instead of relying on directory-name inference.
+    return ['swift','sft','--model',plan['model'],'--model_type','qwen3_vl_reranker','--task_type','generative_reranker',
         '--loss_type','listwise_reranker','--label_names','labels','--tuner_type','lora',
         '--lora_rank','8','--lora_alpha','32','--learning_rate','1e-5','--target_modules','all-linear',
         '--dataset',str(out/'data'/('smoke_train.jsonl' if smoke else 'train.jsonl')),

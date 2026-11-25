@@ -7,6 +7,7 @@
 ## 固定训练协议
 
 - 基座：已经下载并完成推理对照的 `models/Qwen3-VL-Reranker-8B-b212dc8`，不继续微调2B，也不从功能检查的adapter续训。
+- 显式使用Swift `--model_type qwen3_vl_reranker`。本地checkpoint架构同时匹配chat/embedding/reranker注册，不能依赖自动识别；此类型固定对应reranker loader与template。
 - 数据：复用 `artifacts/train_v0/reranker_sft_smoke_40k` 中已审计的4,500 train / 500 smoke-eval query。固定seed20261125，以query ID稳定抽取 **400 train + 100 monitor**，不重新挖负例。
 - 每query仍为1个正例和7个负例；核对canonical样本与图片ID及顺序、真实标签、已知重复组排除，并检查训练/监控query及所有正负例ID不包含2k开发集的正例或其已知重复组。
 - 100条monitor仅为训练侧query holdout，可能与训练集存在商品重叠；不是独立item-disjoint确认集，不用于挑checkpoint。已知重复分组仍不能证明覆盖所有语义同款。
@@ -59,6 +60,28 @@ tail -n 15 artifacts/train_v0/reranker_8b_lora_pilot_v1/train/train.log
 每阶段有gpu_metrics.csv，记录所选卡利用率、显存和功耗。训练尚未进入下一阶段时，对应日志不存在。无需同时启动其他训练/推理任务。
 
 如果训练意外中断，不自动从部分checkpoint续训改变Pilot暴露量；保留日志，定位后用新的Pilot目录。重复train只会复核已成功且有summary的阶段，不覆盖部分训练目录。
+
+### 2026-11-25模型类型歧义修复后的重跑
+
+用户回报v1在Swift参数初始化时报 `Multiple possible types found: ['qwen3_vl', 'qwen3_vl_emb', 'qwen3_vl_reranker']`，尚未加载权重或执行optimizer step。添加显式model_type后，旧计划中的脚本哈希已失效，不能直接重跑v1。保留v1全部计划、数据、日志；新建v2，重新校验来源并按相同seed抽取相同query，不复用失败阶段的任何adapter。
+
+```bash
+git -C /code/ecommerce-retrieval-source pull --ff-only
+cd /code/ecommerce-retrieval
+cp /code/ecommerce-retrieval-source/scripts/reranker_8b_lora_utils.py scripts/
+cp /code/ecommerce-retrieval-source/scripts/run_reranker_8b_lora_pilot.py scripts/
+conda activate ecom-train-v2
+python -u scripts/run_reranker_8b_lora_pilot.py prepare \
+  --output-dir artifacts/train_v0/reranker_8b_lora_pilot_v2 \
+  --gpus 1,2,3,4,5,6,7
+mkdir -p artifacts/train_v0/reranker_8b_lora_logs
+nohup python -u scripts/run_reranker_8b_lora_pilot.py train \
+  --output-dir artifacts/train_v0/reranker_8b_lora_pilot_v2 \
+  --gpus 1,2,3,4,5,6,7 \
+  > artifacts/train_v0/reranker_8b_lora_logs/launcher_v2.log 2>&1 &
+```
+
+观察 `launcher_v2.log` 与 `reranker_8b_lora_pilot_v2/smoke/train.log`。后续report/export/prepare-eval/eval命令均加同一 `--output-dir artifacts/train_v0/reranker_8b_lora_pilot_v2`。本地仅验证命令生成及CPU测试，修复后的CUDA/Swift训练仍待服务器运行。
 
 ## 3. 读取训练功能和方向报告
 
