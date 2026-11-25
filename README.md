@@ -1,6 +1,6 @@
 # 电商商品识别
 
-2026-11-25：缓存排名融合无收益，停止权重搜索。下一项为 [固定候选的精排文本去重A/B](scripts/RERANKER_TEXT_ABLATION.md)：原始组与OCR/ASR完全重复段去重组各重新精排2k，支持1–8张空闲卡；代码已测试，真实结果待服务器执行。
+2026-11-25：[精排文本去重A/B](scripts/RERANKER_TEXT_ABLATION.md)已完成：test Top1 49.8%→49.6%（救回0/伤害2），Top3不变，不采用。缓存排名融合亦无收益；两项均停止调规则，保留首次正式提交。208条文本变化样本的分组归因工具已准备，不新增GPU推理。
 
 
 - [Embedding Pilot 执行说明](scripts/EMBEDDING_PILOT.md)

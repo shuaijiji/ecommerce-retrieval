@@ -1,0 +1,133 @@
+{
+  "objective": "fixed scored candidates and frozen routing; raw vs exact OCR/ASR dedup",
+  "metrics": {
+    "calibration": {
+      "top1": {
+        "baseline": 0.492,
+        "trained": 0.493,
+        "gained": 1,
+        "lost": 0,
+        "net": 1,
+        "paired_p_two_sided": 1
+      },
+      "top3": {
+        "baseline": 0.612,
+        "trained": 0.612,
+        "gained": 0,
+        "lost": 0,
+        "net": 0,
+        "paired_p_two_sided": 1
+      },
+      "candidate_recall": 0.698,
+      "cached_vs_raw": {
+        "top1": {
+          "baseline": 0.492,
+          "trained": 0.492,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1
+        },
+        "top3": {
+          "baseline": 0.611,
+          "trained": 0.612,
+          "gained": 1,
+          "lost": 0,
+          "net": 1,
+          "paired_p_two_sided": 1
+        }
+      }
+    },
+    "test": {
+      "top1": {
+        "baseline": 0.498,
+        "trained": 0.496,
+        "gained": 0,
+        "lost": 2,
+        "net": -2,
+        "paired_p_two_sided": 0.5
+      },
+      "top3": {
+        "baseline": 0.616,
+        "trained": 0.616,
+        "gained": 0,
+        "lost": 0,
+        "net": 0,
+        "paired_p_two_sided": 1
+      },
+      "candidate_recall": 0.714,
+      "cached_vs_raw": {
+        "top1": {
+          "baseline": 0.498,
+          "trained": 0.498,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1
+        },
+        "top3": {
+          "baseline": 0.616,
+          "trained": 0.616,
+          "gained": 1,
+          "lost": 1,
+          "net": 0,
+          "paired_p_two_sided": 1
+        }
+      }
+    },
+    "all_2000": {
+      "top1": {
+        "baseline": 0.495,
+        "trained": 0.4945,
+        "gained": 1,
+        "lost": 2,
+        "net": -1,
+        "paired_p_two_sided": 1
+      },
+      "top3": {
+        "baseline": 0.614,
+        "trained": 0.614,
+        "gained": 0,
+        "lost": 0,
+        "net": 0,
+        "paired_p_two_sided": 1
+      },
+      "candidate_recall": 0.706,
+      "cached_vs_raw": {
+        "top1": {
+          "baseline": 0.495,
+          "trained": 0.495,
+          "gained": 0,
+          "lost": 0,
+          "net": 0,
+          "paired_p_two_sided": 1
+        },
+        "top3": {
+          "baseline": 0.6135,
+          "trained": 0.614,
+          "gained": 2,
+          "lost": 1,
+          "net": 1,
+          "paired_p_two_sided": 1
+        }
+      }
+    }
+  },
+  "text_changed": 208,
+  "engineering": {
+    "raw": {
+      "mean_seconds_per_query": 2.0473977306718005,
+      "peak_memory_gib": 4.651547431945801
+    },
+    "dedup": {
+      "mean_seconds_per_query": 1.9959471684510355,
+      "peak_memory_gib": 4.652019023895264
+    }
+  },
+  "plan_sha256": "53e471540bacca60a0ab1ba28c54845947cc470ecb267fee0d41ef6e1e557b83",
+  "development_set_reused": true,
+  "automatic_promotion": false,
+  "independent_confirmation_required": true,
+  "official_test_used": false,
+  "interpretation": "Primary effect is dedup vs freshly rerun raw on identical candidates; cached vs raw diagnoses batch/runtime drift. Reused development split, not a fresh confirmation."
+}

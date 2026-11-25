@@ -78,3 +78,29 @@ cat artifacts/train_v0/reranker_text_ablation_v1/comparison.json
 重点看metrics.test.top1/top3（baseline是本轮raw，trained是dedup）、gained/lost/net，以及cached_vs_raw；同时记录text_changed、平均时延与峰值显存。paired_cases.jsonl保存全部逐条Top3便于复盘。
 
 中断后重跑同一个run可复用已完成结果；不要重跑prepare覆盖计划。只重新汇总可执行 `python scripts/run_reranker_text_ablation.py report`。计划、模型或输入变化会停止，另建输出目录重新准备。
+
+
+## 已完成结果：不采用去重
+
+用户已回报真实comparison.json，计划SHA-256为53e471540bacca60a0ab1ba28c54845947cc470ecb267fee0d41ef6e1e557b83。结果保存在records/2026-11-25/reranker_text_ablation_reported.json，系用户终端转录，非助手远端直读。
+
+| 分组 | raw Top1 | dedup Top1 | 救回/伤害 | raw Top3 | dedup Top3 |
+|---|---:|---:|---|---:|---:|
+| calibration1000 | 49.2% | 49.3% | 1 / 0 | 61.2% | 61.2% |
+| 原test1000 | 49.8% | 49.6% | 0 / 2 | 61.6% | 61.6% |
+| 全部2000 | 49.50% | 49.45% | 1 / 2 | 61.4% | 61.4% |
+
+test Top1净-2、p=.5；这不是“显著退化”的证据，也没有支持采用该处理的收益。原方案保留，停止去重规则搜索。两组候选覆盖相同（全部70.6%、test71.4%）。原缓存与raw的Top1逐条一致；Top3全部有2救回/1伤害，说明微小批次/运行漂移确实存在，比较dedup时必须用本轮raw。
+
+208条（10.4%）渲染文本发生变化，另1792条未变化。总体的1救回/2伤害不能在未核验前全归到208条。新增独立只读汇总脚本，无需改动已被plan冻结的实验入口，也不重新推理：
+
+```bash
+git -C /code/ecommerce-retrieval-source pull --ff-only
+cd /code/ecommerce-retrieval
+cp /code/ecommerce-retrieval-source/scripts/summarize_text_ablation_subsets.py scripts/
+python scripts/summarize_text_ablation_subsets.py
+```
+
+结果保存到原实验目录changed_text_summary.json，分别报告calibration/test/all中的changed/unchanged子集命中率、救回/伤害、未变文本的预测漂移。验证原计划/preview/split哈希、全部ID覆盖和逐条Top3能重现既有comparison指标。子集为空时指标为null，避免混淆0命中率与无样本。
+
+该补充仅用于归因，不再选新去重方案或改阈值。后续实验应转向固定候选的精排模型能力/训练对照，并使用独立确认集，而非继续依据这2k试文本小规则。
